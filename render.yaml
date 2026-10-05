@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: eldoria-online
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: MAX_PLAYERS
+        value: "200"
+      - key: MAX_PER_IP
+        value: "4"
+      - key: ALLOWED_ORIGINS
+        value: "https://chatchai2537.github.io"
