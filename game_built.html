@@ -4676,7 +4676,7 @@ setInterval(()=>netTick(.05),50);
 // ลิงก์เชิญ: ?server=wss://...
 try{const u=new URLSearchParams(location.search).get('server');if(u){SET.server=u;saveSet()}}catch(e){}
 if(SET.server)setTimeout(()=>netConnect(),1200);
-else if(/^https?:$/.test(location.protocol)&&location.host)setTimeout(()=>netConnect((location.protocol==='https:'?'wss://':'ws://')+location.host),1200); // เปิดเกมจากเซิร์ฟเวอร์เดียวกัน → ต่อออนไลน์เอง
+else if(/^https?:$/.test(location.protocol)&&location.host&&!location.hostname.endsWith('.github.io'))setTimeout(()=>netConnect((location.protocol==='https:'?'wss://':'ws://')+location.host),1200); // เปิดเกมจากเซิร์ฟเวอร์เดียวกัน → ต่อออนไลน์เอง
 // ชื่อเปลี่ยน → แจ้งเซิร์ฟเวอร์
 setInterval(()=>{if(NET.on&&NET.nm!==P.name){NET.nm=P.name;netSend({t:'hi',name:P.name||'ผู้กล้า',v:'3.8'})}},2000);
 
