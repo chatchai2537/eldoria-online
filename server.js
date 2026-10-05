@@ -1,4 +1,6 @@
-// Eldoria online server v2 (positions, chat, whisper, who, PvP)
+// ตำนานเอลโดเรีย — เซิร์ฟเวอร์ออนไลน์ v2 (Node.js + ws)
+// ตำแหน่งผู้เล่น · แชท (ทั่วไป/กิลด์/กระซิบ/ประวัติ/รายชื่อออนไลน์) · PvP (ตรวจฝั่งเซิร์ฟเวอร์) · กันสแปม/แฟลด
+// รัน: npm install && npm start  (พอร์ต PORT หรือ 8787)
 const http = require('http'), fs = require('fs'), path = require('path');
 const { WebSocketServer } = require('ws');
 const PORT = process.env.PORT || 8787;
@@ -8,6 +10,7 @@ const MSG_PER_SEC = 30, TICK_MS = 100, HIST_MAX = 40;
 const BAD = ['ควย','เหี้ย','สัส','เย็ด','fuck','shit','bitch','cunt','nigger'];
 const ipCount = new Map(), banned = new Map(), players = new Map(), history = [];
 let nextId = 1;
+// ไฟล์เว็บ (ถ้ามี) — เสิร์ฟเกมจากเซิร์ฟเวอร์เดียวกันได้
 const STATIC = { '/': ['index.html','text/html; charset=utf-8'], '/index.html': ['index.html','text/html; charset=utf-8'], '/manifest.webmanifest': ['manifest.webmanifest','application/manifest+json'],
   '/sw.js': ['sw.js','text/javascript; charset=utf-8'], '/icon-192.png': ['icon-192.png','image/png'], '/icon-512.png': ['icon-512.png','image/png'] };
 const server = http.createServer((req, res) => {
@@ -75,6 +78,7 @@ wss.on('connection', (ws, req) => {
       const list = [...players.values()].filter(o => o.joined).map(o => ({ name: o.name, lv: o.st ? o.st.lv : 1, sc: o.sc || '', cls: o.st ? o.st.cls : '', pvp: !!(o.st && o.st.pvp) }));
       send(p, { t: 'who', list });
     } else if (d.t === 'pvp') {
+      // ตรวจ PvP ฝั่งเซิร์ฟเวอร์: ฉากเดียวกัน · ไม่ใช่ในเมือง · (สนามประลอง หรือ เปิด PvP ทั้งคู่) · ระยะ · เพดานดาเมจ · ความถี่
       const to = players.get(+d.to); if (!to || to === p || !p.st || !to.st || p.st.dead || to.st.dead) return;
       if (p.sc !== to.sc || safeScene(p.sc)) return;
       if (!(p.sc === 'arena' || (p.st.pvp && to.st.pvp))) return;

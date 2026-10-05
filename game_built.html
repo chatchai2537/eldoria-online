@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<title>ตำนานเอลโดเรีย v4.6</title>
+<link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#1a1226"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><link rel="apple-touch-icon" href="icon-192.png"><meta name="eldoria-server" content="wss://eldoria-online.onrender.com">
+<title>ตำนานเอลโดเรีย v4.9</title>
 <style>
 :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#f3efe6;--fg:#2b2a26;--card:#fff;--bd:#cfc8b8}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1d1c19;--fg:#ece7da;--card:#2a2925;--bd:#4a4740}}
@@ -1020,7 +1021,7 @@ function heroBody(){
   if(d==='d'){R('#111',x-3,by-36,2,3);R('#111',x+1,by-36,2,3)}
   if(d==='d'&&!at)DP?held(x-16,by-15,-1.25):held(x-11,by-13+s*3,-.5-tilt);
  }
- if(d!=='d'&&!side)backSword(x,by,side,f,d);drawHelm(R,x,by,side,f,d);eqGlitter(x,by,d,f);
+ if(window.hairOv8)hairOv8(R,x,by,side,f,d,at);if(d!=='d'&&!side)backSword(x,by,side,f,d);drawHelm(R,x,by,side,f,d);eqGlitter(x,by,d,f);
  if(at&&d!=='u')slash();
  if(!at&&d==='u')DP?held(x+16,by-15,1.25):held(x+11,by-13-s*3,.5+tilt);
  if(DP)ctx.restore();
@@ -4286,7 +4287,7 @@ function enterDg(f){closeZMenu();const idx=200+f;for(const k in ZCACHE)if(+k>=20
 function dgReward(f){const R=[],add=(k,n)=>{for(let i=0;i<n;i++)R.push(k)};add('coin',8+Math.floor(f/4));add('estone',1+Math.floor(f/12)+(Math.random()<.5?1:0));add(MATKEY[Math.min(5,Math.floor(f/17))],1+Math.floor(Math.random()*3));
  if(Math.random()<.12+f/400)add('bless',1);if(Math.random()<.15)add('phoenix',1);if(Math.random()<.4)add('hpp',2);if(Math.random()<.3)add('mpp',2);return R}
 function openChest_(){const c=D.chest,f=D.dg;c.open=true;sfx('chest');sfx('gem');flash('#ffe9a0',.4);shake(3,.2);
- for(const k of dgReward(f))addDrop(k,c.x,c.y-6);const coins=Math.round(40*f*(.8+Math.random()*.4));inv.coin+=coins;dmgTxt(c.x,c.y-30,'+'+coins+' 🪙','#ffd84a',true);
+ for(const k of dgReward(f))addDrop(k,c.x,c.y-6);const coins=Math.round(40*Math.min(f,120)*(.8+Math.random()*.4));inv.coin+=coins;dmgTxt(c.x,c.y-30,'+'+coins+' 🪙','#ffd84a',true);
  if(Math.random()<.25+f/300){const t=Math.min(5,Math.floor(f/17)),ks=['sword','staff','bow','helm','chest','pants','arm','neck','ring'],id=ks[Math.random()*ks.length|0]+t;GEAR[id]=(GEAR[id]||0)+1;say('🎁 ได้อุปกรณ์: '+ITEMS[id].name+'!');chatAnn((P.name||'ผู้กล้า')+' ได้ '+ITEMS[id].name+' จากกล่องดันเจี้ยนชั้น '+f)}
  for(let i=0;i<30;i++)fx.push({x:c.x,y:c.y-10,vx:(Math.random()-.5)*180,vy:-60-Math.random()*130,l:.9,c:'255,216,74'});refreshInv();say('🎁 เปิดกล่องสมบัติชั้น '+f+'! '+(f<DGMAX7()?'ยืนที่กล่องแล้วกด E อีกครั้งเพื่อลงชั้น '+(f+1):'🏆 พิชิตดันเจี้ยนครบ 100 ชั้นแล้ว!'));saveX()}
 {const _mk=mobKill;mobKill=function(m){_mk(m);if(D&&D.dg&&m.boss){D.bossT=0;D.chest={x:D.zone.arena.x*T+16,y:D.zone.arena.y*T+16,open:false};const f=D.dg;if(DG.max<=f&&f<DGMAX7()){DG.max=f+1;DG.sel=f+1}saveX();chatAnn((P.name||'ผู้กล้า')+' พิชิตดันเจี้ยนชั้น '+f+'!');say('🏆 ชนะบอส! กล่องสมบัติปรากฏกลางห้อง — เดินไปกด E เปิด')}}}
@@ -4642,7 +4643,7 @@ function netClose(m){NET.manual=!!m;if(NET.ws){try{NET.ws.close()}catch(e){}}NET
 function netMsg(d){
  if(d.t==='welcome'){NET.id=d.id;NET.n=d.n;netStatus()}
  else if(d.t==='snap'){NET.n=d.on;const seen=new Set();for(const s of d.ps){seen.add(s.id);let o=NET.others.get(s.id);if(!o){o={id:s.id,x:s.x,y:s.y,t:0};NET.others.set(s.id,o)}
-   if(Math.hypot(o.x-s.x,o.y-s.y)>220){o.x=s.x;o.y=s.y}Object.assign(o,{tx:s.x,ty:s.y,dir:s.dir,mv:s.mv,run:s.run,at:s.at,cmb:s.cmb,tool:s.tool,draw:s.draw,armor:s.armor||{},tier:s.tier||{},lv:s.lv,name:s.name,dead:s.dead,cls:s.cls,seen:performance.now()})}
+   if(Math.hypot(o.x-s.x,o.y-s.y)>220){o.x=s.x;o.y=s.y}Object.assign(o,{tx:s.x,ty:s.y,dir:s.dir,mv:s.mv,run:s.run,at:s.at,cmb:s.cmb,tool:s.tool,draw:s.draw,armor:s.armor||{},tier:s.tier||{},lv:s.lv,name:s.name,dead:s.dead,cls:s.cls,pvp:!!s.pvp,look:s.look||null,seen:performance.now()})}
   for(const k of [...NET.others.keys()])if(!seen.has(k))NET.others.delete(k);netStatus()}
  else if(d.t==='chat'){chatSay(d.ch==='guild'?'guild':'gen',d.name,d.txt,'#9fd8ff');const o=NET.others.get(d.id);if(o)o.bub={txt:String(d.txt).slice(0,60),until:performance.now()+4500}}
  else if(d.t==='sys')sysSay('🌐 '+d.txt)
@@ -4676,7 +4677,7 @@ setInterval(()=>netTick(.05),50);
 // ลิงก์เชิญ: ?server=wss://...
 try{const u=new URLSearchParams(location.search).get('server');if(u){SET.server=u;saveSet()}}catch(e){}
 if(SET.server)setTimeout(()=>netConnect(),1200);
-else if(/^https?:$/.test(location.protocol)&&location.host&&!location.hostname.endsWith('.github.io'))setTimeout(()=>netConnect((location.protocol==='https:'?'wss://':'ws://')+location.host),1200); // เปิดเกมจากเซิร์ฟเวอร์เดียวกัน → ต่อออนไลน์เอง
+else if(/^https?:$/.test(location.protocol)&&location.host)setTimeout(()=>netConnect((location.protocol==='https:'?'wss://':'ws://')+location.host),1200); // เปิดเกมจากเซิร์ฟเวอร์เดียวกัน → ต่อออนไลน์เอง
 // ชื่อเปลี่ยน → แจ้งเซิร์ฟเวอร์
 setInterval(()=>{if(NET.on&&NET.nm!==P.name){NET.nm=P.name;netSend({t:'hi',name:P.name||'ผู้กล้า',v:'3.8'})}},2000);
 
@@ -8948,6 +8949,287 @@ SystemValidator.runFullGamePlaytest=async function(opt){opt=Object.assign({floor
  SP.setItem=_set;try{if(svGod!==null)GM7.god=svGod}catch(e){}closeAll();
  const R={bugs:BUGS,stats:Object.assign(ST,{ms:Math.round(performance.now()-t0)}),byModule:BUGS.reduce((a,b)=>{a[b.module]=(a[b.module]||0)+1;return a},{}),byType:BUGS.reduce((a,b)=>{a[b.type]=(a[b.type]||0)+1;return a},{})};
  window.QA_LAST=R;try{sessionStorage.setItem('qa7_last',JSON.stringify({stats:R.stats,byType:R.byType,bugs:BUGS.slice(0,300)}))}catch(e){}EventBus.emit(EV.VALIDATED,{qa:true,count:BUGS.length});prog('เสร็จ');return R};
+
+// =====================================================================
+// gm8.js — GM เฉพาะไอดีเจ้าของเกม (tiksi / wiwekwin2537) + ต้องยืนยัน "กุญแจ GM" ลับครั้งเดียวต่อเครื่อง
+// คนอื่นตั้งชื่อไอดีเหมือนกันก็เป็น GM ไม่ได้ (ไม่มีกุญแจ) · ยกเลิกรหัส GM เดิม (/gm รหัส)
+// =====================================================================
+const GM8_HASH='5cfad4c7b597ef0b67906cf78916d7f76e9ba2c22bd3e8aefe3f7083bf897a55';
+function sha256hex8(str){const K=[0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2];
+ const b=new TextEncoder().encode(str),l=b.length,n=((l+9+63)>>6)<<6,m=new Uint8Array(n);m.set(b);m[l]=0x80;const bl=l*8;for(let i=0;i<4;i++)m[n-1-i]=(bl>>>(8*i))&255;
+ let h=[0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19];const w=new Uint32Array(64),r=(x,k)=>(x>>>k)|(x<<(32-k));
+ for(let o=0;o<n;o+=64){for(let i=0;i<16;i++)w[i]=(m[o+i*4]<<24)|(m[o+i*4+1]<<16)|(m[o+i*4+2]<<8)|m[o+i*4+3];for(let i=16;i<64;i++){const s0=r(w[i-15],7)^r(w[i-15],18)^(w[i-15]>>>3),s1=r(w[i-2],17)^r(w[i-2],19)^(w[i-2]>>>10);w[i]=(w[i-16]+s0+w[i-7]+s1)>>>0}
+  let [a,bb,c,d,e,f,g,hh]=h;for(let i=0;i<64;i++){const S1=r(e,6)^r(e,11)^r(e,25),ch=(e&f)^(~e&g),t1=(hh+S1+ch+K[i]+w[i])>>>0,S0=r(a,2)^r(a,13)^r(a,22),mj=(a&bb)^(a&c)^(bb&c),t2=(S0+mj)>>>0;hh=g;g=f;f=e;e=(d+t1)>>>0;d=c;c=bb;bb=a;a=(t1+t2)>>>0}
+  h=[h[0]+a,h[1]+bb,h[2]+c,h[3]+d,h[4]+e,h[5]+f,h[6]+g,h[7]+hh].map(x=>x>>>0)}return h.map(x=>x.toString(16).padStart(8,'0')).join('')}
+const GM8={ok:false};
+function gm8Check(){try{const k=localStorage.getItem('fm_gmkey8')||'';GM8.ok=!!k&&sha256hex8('eldoria-gm8:'+k.trim().toUpperCase())===GM8_HASH}catch(e){GM8.ok=false}return GM8.ok}
+gm8Check();
+try{sessionStorage.removeItem('fm_gm7')}catch(e){}
+gmAllowed=function(){try{return !!(FM_ACCT&&GM_IDS.includes(String(FM_ACCT).toLowerCase())&&GM8.ok)}catch(e){return false}};window.gmAllowed=gmAllowed;
+gmCode=async function(){say('รหัส GM แบบเดิมถูกยกเลิกแล้ว');sfx('thud')};window.gmCode=gmCode;
+function gmKey8(k){k=String(k||'').trim().toUpperCase();if(!(FM_ACCT&&GM_IDS.includes(String(FM_ACCT).toLowerCase()))){say('ไอดีนี้ไม่มีสิทธิ์ GM');sfx('thud');return}
+ if(sha256hex8('eldoria-gm8:'+k)!==GM8_HASH){say('กุญแจ GM ไม่ถูกต้อง');sfx('thud');return}try{localStorage.setItem('fm_gmkey8',k)}catch(e){}gm8Check();try{gmBtn()}catch(e){}say('🛠️ ยืนยัน GM สำเร็จ (จำไว้ในเครื่องนี้แล้ว)');sfx('gem')}
+// ซ่อนปุ่ม GM ทันทีถ้าไม่มีสิทธิ์
+setInterval(()=>{try{const b=gid('gmb');if(b)b.style.display=gmAllowed()?'':'none';if(!gmAllowed()){const w=gid('gmw');if(w&&!w.hidden)p6close(w)}if(!gmAllowed()&&typeof GM7!=='undefined'){GM7.god=false;GM7.nocd=false}}catch(e){}},700);
+// คำสั่งแชท /gmkey xxxxx (ไม่ถูกส่งออนไลน์)
+{const _cs=chatSend;chatSend=function(){const ti=gid('chatTi'),t=(ti&&ti.value||'').trim();if(/^\/gmkey\b/i.test(t)){ti.value='';gmKey8(t.replace(/^\/gmkey\s*/i,''));return}return _cs()};try{gid('chatSend').onclick=()=>chatSend()}catch(e){}}
+
+// =====================================================================
+// look.js — เลือกเพศ / สีชุด / สีผม · ใช้ทั้งตัวเราและผู้เล่นออนไลน์คนอื่น
+// =====================================================================
+const LOOK_COL8={top:['#262631','#7a2a2a','#2a4a8a','#2a6a3a','#6a3a8a','#a8743a','#d8d0c0','#c0507a'],pants:['#14141a','#3a2a1a','#1a2a4a','#2a3a2a','#4a4a52','#5a1a1a'],hair:['#14141a','#5a3418','#a8743a','#e8d070','#c8c8d0','#a83a2a','#3a5aa8','#e08ab0']};
+const LOOKDEF8={g:'m',top:'#262631',pants:'#14141a',hair:'#14141a'};
+let LOOK8=Object.assign({},LOOKDEF8);try{Object.assign(LOOK8,JSON.parse(localStorage.getItem('fm_look8')||'{}')||{})}catch(e){}
+window.LOOK8=LOOK8;P.look8=LOOK8;
+const lookSave8=()=>{try{localStorage.setItem('fm_look8',JSON.stringify(LOOK8))}catch(e){}window.LOOK8=LOOK8;P.look8=LOOK8};
+const shade8=(h,a)=>{try{const n=parseInt(h.slice(1),16);let r=(n>>16)+a,g=((n>>8)&255)+a,b=(n&255)+a;r=Math.max(0,Math.min(255,r));g=Math.max(0,Math.min(255,g));b=Math.max(0,Math.min(255,b));return '#'+((1<<24)+(r<<16)+(g<<8)+b).toString(16).slice(1)}catch(e){return h}};
+// สีชุดพื้นฐาน (เมื่อไม่ได้ใส่เกราะ)
+{const _e=EQCOL;EQCOL=function(){const c=_e(),L=P.look8||LOOKDEF8,a=P.armor||{};if(!a.chest&&L.top){c.TOP=L.top;c.COLLAR=shade8(L.top,-26)}if(!a.pants&&L.pants){c.BLK=L.pants;c.LEG2=shade8(L.pants,-12)}c.HAIR=L.hair||c.HAIR;return c}}
+// ผม (สีผม + ผมยาวผู้หญิง) วาดก่อนหมวก
+function hairOv8(R,x,by,side,f,d,at){try{const L=P.look8||LOOKDEF8;if(P.armor&&P.armor.helm)return;const H=L.hair||'#14141a',fem=L.g==='f',re=H!=='#14141a';if(!fem&&!re)return;
+ if(side){if(re){R(H,x-7,by-43,14,7);R(H,x-7+(f<0?6:0),by-43,8,13);R(H,x-6,by-48,4,6);R(H,x-1,by-49,4,7);R(H,x+3,by-47,4,5)}
+  if(fem){R(H,x-f*5-3,by-43,6,19);R(H,x-f*7-2,by-30,4,8);R(H,x-7,by-44,14,3);R('#ff7ab0',x-f*4-1,by-46,3,3)}}
+ else{if(re){R(H,x-7,by-43,14,d==='u'?15:6);R(H,x-7,by-47,4,5);R(H,x-2,by-48,4,6);R(H,x+3,by-47,4,5)}
+  if(fem){if(d==='u'){R(H,x-7,by-43,14,21);R(H,x-6,by-23,12,3)}else{R(H,x-9,by-43,3,18);R(H,x+6,by-43,3,18);R(H,x-7,by-44,14,4);R(H,x-6,by-41,4,2);R(H,x+2,by-41,4,2);R('#111',x-4,by-37,1,1);R('#111',x+4,by-37,1,1);R('#e88a9a',x-1,by-31,2,1)}
+   R('#ff7ab0',x+3,by-48,4,3);R('#ff7ab0',x+6,by-47,2,2)}}}catch(e){}}
+window.hairOv8=hairOv8;
+// ผู้เล่นคนอื่น: ใช้รูปลักษณ์ของเขาตอนวาด
+if(typeof drawOther==='function'){const _do=drawOther;drawOther=function(o){const sv=P.look8;P.look8=Object.assign({},LOOKDEF8,o.look||{});try{return _do(o)}finally{P.look8=sv}}}
+// หน้าตั้งชื่อตัวละคร: เลือกเพศ + สีชุด
+function lookPick8(host,onch){const sw=(k,arr)=>'<div class="lk8r"><span>'+({top:'เสื้อ',pants:'กางเกง',hair:'ผม'}[k])+'</span>'+arr.map(c=>'<i data-k="'+k+'" data-c="'+c+'" style="background:'+c+'" class="'+(LOOK8[k]===c?'on':'')+'"></i>').join('')+'</div>';
+ host.innerHTML='<div class="lk8g"><button data-g="m" class="'+(LOOK8.g!=='f'?'on':'')+'">♂ ชาย</button><button data-g="f" class="'+(LOOK8.g==='f'?'on':'')+'">♀ หญิง</button></div>'+sw('top',LOOK_COL8.top)+sw('pants',LOOK_COL8.pants)+sw('hair',LOOK_COL8.hair);
+ host.onclick=e=>{const g=e.target.closest('[data-g]'),c=e.target.closest('[data-c]');if(g)LOOK8.g=g.dataset.g;else if(c)LOOK8[c.dataset.k]=c.dataset.c;else return;e.stopPropagation();lookPick8(host,onch);onch&&onch()}}
+{const st=document.createElement('style');st.textContent='.lk8g{display:flex;gap:6px;justify-content:center;margin:6px 0}.lk8g button{flex:1;max-width:110px;padding:6px!important;border-radius:9px!important;border:1.5px solid #8a7a5a!important;background:#2a2218!important;color:#ffe9c0!important;font-weight:800}.lk8g button.on{background:linear-gradient(180deg,#ffe9a0,#d8b050)!important;color:#3a2408!important}.lk8r{display:flex;align-items:center;gap:4px;justify-content:center;margin:4px 0;flex-wrap:wrap}.lk8r span{font-size:11px;min-width:44px;text-align:right;margin-right:4px;opacity:.85}.lk8r i{width:20px;height:20px;border-radius:6px;border:2px solid rgba(255,255,255,.25);cursor:pointer;display:inline-block}.lk8r i.on{border-color:#fff;box-shadow:0 0 0 2px #ffd84a}#lk8prev{display:block;margin:4px auto;border-radius:10px;background:radial-gradient(circle,#5a4a7a,#1a1428)}';document.head.appendChild(st)}
+function lookPreview8(cv){try{const k=cv.getContext('2d'),sv=ctx,sx=P.x,sy=P.y,sd=P.dir,sm=P.mv,smo=MOUNT.on,sdr=P.draw;ctx=k;k.setTransform(1,0,0,1,0,0);k.clearRect(0,0,cv.width,cv.height);k.translate(cv.width/2,cv.height-8);k.scale(1.7,1.7);
+ try{P.x=0;P.y=0;P.dir='d';P.mv=false;MOUNT.on=false;P.draw=false;hero()}finally{ctx=sv;P.x=sx;P.y=sy;P.dir=sd;P.mv=sm;MOUNT.on=smo;P.draw=sdr}}catch(e){}}
+try{const card=intro.querySelector('.card'),go=gid('introGo');if(card&&go&&!gid('lk8intro')){const d=document.createElement('div');d.id='lk8intro';card.insertBefore(d,go);lookPick8(d,()=>lookSave8())}}catch(e){}
+{const _sg=startGame;startGame=function(nm){lookSave8();return _sg(nm)}}
+// หน้าต่างปรับรูปลักษณ์ (เปลี่ยนสีครั้งแรกฟรี ต่อไป 100 เหรียญ · เปลี่ยนเพศฟรี)
+const lookW8=mk6('lkw8');
+function openLook8(){const old=JSON.stringify(LOOK8);let free=false;try{free=localStorage.getItem('fm_lookfree8')!=='1'}catch(e){}
+ const render=()=>{lookW8.innerHTML='<div class="w" style="width:min(420px,96%);height:auto;max-height:95%"><div class="hd"><b>👗 รูปลักษณ์ตัวละคร</b><button onclick="closeLook8(false)">✕</button></div><div class="bd" style="flex-direction:column;overflow-y:auto;padding:8px"><canvas id="lk8prev" width="140" height="120"></canvas><div id="lk8pick"></div><small style="text-align:center;opacity:.8">'+(free?'เปลี่ยนสีครั้งแรกฟรี':'เปลี่ยนสีชุด/ผม 100 🪙 · เปลี่ยนเพศฟรี')+'</small><button class="bt" style="margin-top:6px" onclick="closeLook8(true)">✅ บันทึก</button></div></div>';
+  lookPick8(gid('lk8pick'),()=>{lookPreview8(gid('lk8prev'))});lookPreview8(gid('lk8prev'))};
+ window.closeLook8=ok=>{const o=JSON.parse(old),colorCh=['top','pants','hair'].some(k=>o[k]!==LOOK8[k]);
+  if(ok&&colorCh&&!free){if(inv.coin<100){say('เหรียญไม่พอ (ต้องใช้ 100)');sfx('thud');ok=false}else{inv.coin-=100;refreshInv()}}
+  if(!ok){Object.assign(LOOK8,o)}else{if(colorCh&&free)try{localStorage.setItem('fm_lookfree8','1')}catch(e){}say('👗 บันทึกรูปลักษณ์แล้ว');sfx('ui')}lookSave8();p6close(lookW8)};
+ p6open(lookW8);render()}
+window.openLook8=openLook8;
+
+// =====================================================================
+// mount.js — ม้ามุมหน้า/หลัง วาดใหม่ให้เป็นตัวเดียวกับมุมข้าง (ม้าศึกหุ้มเกราะ: ขายาว เกราะหน้าเงิน ผ้าอานแดงขอบทอง ปลอกคอหนัง)
+// ผู้ขี่นั่งคร่อมจริง (ต้นขากางออก เข่างอ เท้าในโกลน) แทนท่ายืน
+// =====================================================================
+function legUD8(x,top,len,K,far,lift,hind){ctx.lineCap='round';ctx.strokeStyle=far?K.s:K.b;ctx.lineWidth=hind?6:5;ctx.beginPath();ctx.moveTo(x,top);ctx.lineTo(x,top+len*.45-lift*.4);ctx.stroke();
+ ctx.strokeStyle=far?K.s:K.leg;ctx.lineWidth=3.4;ctx.beginPath();ctx.moveTo(x,top+len*.45-lift*.4);ctx.lineTo(x,top+len-lift);ctx.stroke();ctx.fillStyle='#1a1210';ctx.beginPath();ctx.ellipse(x,top+len-lift,3.4,2.2,0,0,7);ctx.fill()}
+function bodyUD8(K,y0,y1){const g=ctx.createLinearGradient(0,y0,0,y1);g.addColorStop(0,K.hi);g.addColorStop(.45,K.b);g.addColorStop(1,K.s);ctx.fillStyle=g;ctx.strokeStyle='rgba(20,10,5,.55)';ctx.lineWidth=1;ctx.fill();ctx.stroke()}
+drawSteedUD7=function(k,x,y,dir,A,ph){try{const K=MPAL[k]||MPAL.horse,t=performance.now()/1000,g=t*(A?9.5:0)+(MOUNT.g0||0),wolf=k==='wolf',S=MSC;
+ const lift=p=>A?Math.max(0,Math.sin(g*2+p))*4:0,bob=-Math.abs(Math.sin(g*2))*1.2*A;
+ ctx.save();ctx.translate(x,y);ctx.scale(S,S);ctx.lineJoin='round';
+ if(ph===0){ctx.fillStyle='rgba(0,0,0,.28)';ctx.beginPath();ctx.ellipse(0,1,17,5,0,0,7);ctx.fill();
+  if(dir==='d'){// มุมหน้า: ขาหลัง (ไกล) → ลำตัว → ผ้าอาน → ขาหน้า (ใกล้)
+   legUD8(-6,-30,31,K,1,lift(Math.PI),1);legUD8(6,-30,31,K,1,lift(0),1);
+   ctx.translate(0,bob);ctx.beginPath();ctx.ellipse(0,-37,12,11,0,0,7);bodyUD8(K,-48,-26);
+   ctx.fillStyle='#7a2a2a';ctx.fillRect(-14,-47,5,12);ctx.fillRect(9,-47,5,12);ctx.fillStyle='#e8c14a';ctx.fillRect(-14,-36,5,1.2);ctx.fillRect(9,-36,5,1.2);ctx.translate(0,-bob);
+   legUD8(-7,-28,29,K,0,lift(Math.PI*1.5),0);legUD8(7,-28,29,K,0,lift(Math.PI*.5),0)}
+  else{// มุมหลัง: ขาหน้า (ไกล) → หัว/หูโผล่ → สะโพก → ขาหลัง (ใกล้)
+   legUD8(-6,-29,30,K,1,lift(Math.PI*.5),0);legUD8(6,-29,30,K,1,lift(Math.PI*1.5),0);
+   ctx.translate(0,bob);
+   if(!wolf){ctx.beginPath();ctx.moveTo(-5,-48);ctx.quadraticCurveTo(-6,-62,0,-66);ctx.quadraticCurveTo(6,-62,5,-48);ctx.closePath();bodyUD8(K,-66,-48);ctx.strokeStyle=K.m;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(0,-64);ctx.lineTo(0,-48);ctx.stroke()}
+   ctx.fillStyle=K.b;for(const s of [-1,1]){ctx.beginPath();ctx.moveTo(s*2,-64);ctx.lineTo(s*(wolf?6:4),-73);ctx.lineTo(s*(wolf?7:6),-63);ctx.closePath();ctx.fill();ctx.strokeStyle='rgba(20,10,5,.55)';ctx.lineWidth=1;ctx.stroke()}
+   if(!wolf){ctx.fillStyle='#c8ccd6';ctx.fillRect(-3,-66,6,4)}
+   ctx.beginPath();ctx.moveTo(-13,-30);ctx.bezierCurveTo(-15,-44,-8,-49,0,-48);ctx.bezierCurveTo(8,-49,15,-44,13,-30);ctx.bezierCurveTo(10,-23,-10,-23,-13,-30);ctx.closePath();bodyUD8(K,-49,-24);
+   ctx.fillStyle='rgba(0,0,0,.14)';ctx.beginPath();ctx.ellipse(0,-34,1.5,9,0,0,7);ctx.fill();
+   ctx.fillStyle='#7a2a2a';ctx.fillRect(-15,-47,5,11);ctx.fillRect(10,-47,5,11);ctx.fillStyle='#e8c14a';ctx.fillRect(-15,-37,5,1.2);ctx.fillRect(10,-37,5,1.2);ctx.translate(0,-bob);
+   legUD8(-8,-28,29,K,0,lift(0),1);legUD8(8,-28,29,K,0,lift(Math.PI),1)}}
+ else{ctx.translate(0,bob);
+  if(dir==='d'){// คอ + หัวหันเข้ากล้อง (อยู่หน้าผู้ขี่ ต่ำกว่าหน้าผู้ขี่)
+   ctx.fillStyle='#c8ccd6';ctx.strokeStyle='#5a5e6a';ctx.lineWidth=.8;ctx.beginPath();ctx.moveTo(-9,-30);ctx.quadraticCurveTo(0,-20,9,-30);ctx.lineTo(7,-24);ctx.quadraticCurveTo(0,-17,-7,-24);ctx.closePath();ctx.fill();ctx.stroke();ctx.fillStyle='#e8c14a';for(const xx of [-4,0,4]){ctx.beginPath();ctx.arc(xx,-23,.9,0,7);ctx.fill()}
+   ctx.save();ctx.translate(0,-31);ctx.scale(.86,.86);ctx.translate(0,31+12);
+   ctx.beginPath();ctx.moveTo(-7,-30);ctx.quadraticCurveTo(-8,-44,-5,-52);ctx.lineTo(5,-52);ctx.quadraticCurveTo(8,-44,7,-30);ctx.closePath();bodyUD8(K,-52,-30);
+   if(wolf){ctx.beginPath();ctx.ellipse(0,-52,9,8,0,0,7);bodyUD8(K,-60,-44);for(const s of [-1,1]){ctx.fillStyle=K.b;ctx.beginPath();ctx.moveTo(s*3,-58);ctx.lineTo(s*8,-68);ctx.lineTo(s*9,-55);ctx.closePath();ctx.fill()}ctx.fillStyle=K.hi;ctx.beginPath();ctx.ellipse(0,-46,5,4,0,0,7);ctx.fill();ctx.fillStyle='#111';ctx.beginPath();ctx.arc(0,-47,1.6,0,7);ctx.fill();ctx.fillStyle='#9fd8ff';for(const s of [-1,1])ctx.fillRect(s*4-1,-55,2.4,2)}
+   else{ctx.beginPath();ctx.moveTo(-5,-62);ctx.bezierCurveTo(-7,-54,-6,-44,-4,-37);ctx.quadraticCurveTo(0,-33,4,-37);ctx.bezierCurveTo(6,-44,7,-54,5,-62);ctx.quadraticCurveTo(0,-65,-5,-62);ctx.closePath();bodyUD8(K,-64,-36);
+    for(const s of [-1,1]){ctx.fillStyle=K.b;ctx.beginPath();ctx.moveTo(s*3,-61);ctx.lineTo(s*5,-69);ctx.lineTo(s*6.5,-60);ctx.closePath();ctx.fill();ctx.strokeStyle='rgba(20,10,5,.55)';ctx.lineWidth=1;ctx.stroke()}
+    // เกราะหน้าเงิน (ชุดเดียวกับมุมข้าง)
+    ctx.fillStyle='#c8ccd6';ctx.strokeStyle='#5a5e6a';ctx.lineWidth=.8;ctx.beginPath();ctx.moveTo(-3.6,-60);ctx.lineTo(3.6,-60);ctx.lineTo(2.6,-44);ctx.lineTo(0,-41);ctx.lineTo(-2.6,-44);ctx.closePath();ctx.fill();ctx.stroke();ctx.fillStyle='#e8c14a';for(const yy of [-56,-51])ctx.fillRect(-.8,yy,1.6,1.6);
+    ctx.fillStyle=K.s;ctx.beginPath();ctx.ellipse(0,-37.5,4.2,2.8,0,0,7);ctx.fill();ctx.fillStyle='#120a08';for(const s of [-1,1]){ctx.beginPath();ctx.arc(s*1.7,-37,.8,0,7);ctx.fill();ctx.beginPath();ctx.ellipse(s*5.2,-53,1.1,1.4,0,0,7);ctx.fill()}
+    ctx.strokeStyle=K.m;ctx.lineWidth=2.2;ctx.beginPath();ctx.moveTo(-2,-62);ctx.quadraticCurveTo(0,-58,2,-62);ctx.stroke();ctx.strokeStyle='#3a2410';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(-5,-42);ctx.lineTo(5,-42);ctx.stroke();
+    if(k==='unicorn'){ctx.fillStyle='#ffd23a';ctx.beginPath();ctx.moveTo(-1.6,-62);ctx.lineTo(0,-75);ctx.lineTo(1.6,-62);ctx.closePath();ctx.fill()}}
+   ctx.restore();
+   // ปลอกคอหนัง + เกราะอก
+   ctx.fillStyle='#4a2c16';ctx.strokeStyle='#1a0e06';ctx.lineWidth=1;ctx.beginPath();ctx.ellipse(0,-31,8,3.2,0,0,7);ctx.fill();ctx.stroke();ctx.fillStyle='#e8c14a';for(const xx of [-5,0,5]){ctx.beginPath();ctx.arc(xx,-31,1,0,7);ctx.fill()}}
+  else{// หางยาวห้อยจากสะโพก
+   const sw=Math.sin(t*2.2)*.3+Math.sin(g)*.15*A;ctx.strokeStyle=K.m;ctx.lineCap='round';for(let i=0;i<4;i++){ctx.lineWidth=wolf?3.4:2.4;ctx.beginPath();ctx.moveTo(-1.5+i,-42);ctx.bezierCurveTo(-2+i,-34,sw*8+i-1.5,-24,sw*12+i*1.2-2,-12+i);ctx.stroke()}}}
+ ctx.restore()}catch(e){try{ctx.restore()}catch(_){}}};
+window.drawSteedUD7=drawSteedUD7;
+// ขาผู้ขี่ (มุมหน้า/หลัง): นั่งคร่อม ต้นขากางออกด้านข้าง เข่างอ แข้งห้อยข้างตัวม้า เท้าในโกลน
+{const _sl=seatLegs;seatLegs=function(x,hipY,f,side,EC,stir){if(side||!stir||!(typeof MOUNT!=='undefined'&&MOUNT.on))return _sl(x,hipY,f,side,EC,stir);
+ try{const LG=EC.BLK||'#262631',LG2=EC.LEG2||'#0b0b10',BT='#2a1a10';ctx.save();ctx.lineCap='round';ctx.lineJoin='round';
+  for(const s of [-1,1]){ctx.strokeStyle=LG;ctx.lineWidth=6;ctx.beginPath();ctx.moveTo(x+s*3,hipY+1);ctx.lineTo(x+s*12,hipY+5);ctx.stroke();
+   ctx.strokeStyle=LG2;ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(x+s*12,hipY+5);ctx.lineTo(x+s*13,hipY+15);ctx.stroke();
+   ctx.fillStyle=BT;ctx.fillRect(x+s*13-3,hipY+14,6,4);ctx.strokeStyle='#5a3418';ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(x+s*10,hipY);ctx.lineTo(x+s*13,hipY+18);ctx.stroke();ctx.fillStyle='#c8ccd6';ctx.fillRect(x+s*13-4,hipY+18,8,2)}
+  ctx.restore()}catch(e){}}}
+
+// =====================================================================
+// vault.js — คลังเก็บของ (ฝาก/ถอน วัตถุดิบและอุปกรณ์) ใช้ได้ในเมือง/ร้าน/ที่ดิน · ไม่นับน้ำหนัก · ขยายช่องด้วยเหรียญ (ช่วยไม่ให้เงินเฟ้อ)
+// =====================================================================
+const VAULT8=(()=>{let V={mats:{},gear:{},lv:0};try{Object.assign(V,JSON.parse(localStorage.getItem('fm_vault8')||'{}')||{})}catch(e){}V.mats=V.mats||{};V.gear=V.gear||{};return V})();
+const VCAP8=[30,45,60,80,100],VCOST8=[800,2500,6000,15000];
+const vCap8=()=>VCAP8[Math.min(VAULT8.lv|0,VCAP8.length-1)],vUsed8=()=>Object.keys(VAULT8.mats).filter(k=>VAULT8.mats[k]>0).length+Object.keys(VAULT8.gear).filter(k=>VAULT8.gear[k]>0).length;
+const vSave8=()=>{try{localStorage.setItem('fm_vault8',JSON.stringify(VAULT8))}catch(e){}try{saveGame(true)}catch(e){}};
+const vOk8=()=>!!(D&&(D.town||D.shop||D.home));
+const vW8=mk6('vlt8');const VQ8={q:1};
+function vIcon8(t,k){try{return iconURL((t==='g'?'item:':'mat:')+k)}catch(e){return ''}}
+function vRender8(){const cap=vCap8(),used=vUsed8(),eq=new Set(Object.values(P.armor||{}).filter(Boolean));
+ const cell=(t,k,n,act)=>'<div class="v8c" onclick="'+act+'(\''+t+'\',\''+k+'\')" title="'+(t==='g'?ITEMS[k].name:MN(k))+'"><img src="'+vIcon8(t,k)+'"><em>'+n+'</em></div>';
+ let vh='',bh='';for(const k in VAULT8.gear)if(VAULT8.gear[k]>0&&ITEMS[k])vh+=cell('g',k,VAULT8.gear[k],'vOut8');for(const k in VAULT8.mats)if(VAULT8.mats[k]>0&&INVMETA[k])vh+=cell('m',k,VAULT8.mats[k],'vOut8');
+ for(const k in GEAR)if(GEAR[k]>0&&ITEMS[k])bh+=cell('g',k,GEAR[k],'vIn8');for(const k of INVORDER)if(k!=='coin'&&inv[k]>0)bh+=cell('m',k,inv[k],'vIn8');
+ const nx=VCOST8[VAULT8.lv|0];
+ vW8.innerHTML='<div class="w"><div class="hd"><b>📦 คลังเก็บของ · '+used+'/'+cap+' ช่อง</b><button class="'+(VQ8.q===1?'on':'')+'" onclick="vQ8(1)">×1</button><button class="'+(VQ8.q===10?'on':'')+'" onclick="vQ8(10)">×10</button><button class="'+(VQ8.q===1e9?'on':'')+'" onclick="vQ8(1e9)">ทั้งหมด</button><button onclick="p6close(vW8)">✕</button></div>'
+  +'<div class="bd v8"><div class="v8p"><div class="v8t">📦 ในคลัง (แตะ = ถอน)</div><div class="v8g">'+(vh||'<small>ยังว่าง</small>')+'</div>'+(nx?'<button class="bt v8up" onclick="vUp8()">➕ ขยายคลัง +'+(VCAP8[(VAULT8.lv|0)+1]-cap)+' ช่อง · 🪙 '+nx.toLocaleString()+'</button>':'<small>คลังขนาดสูงสุดแล้ว</small>')+'</div>'
+  +'<div class="v8p"><div class="v8t">🎒 กระเป๋า (แตะ = ฝาก) · ของที่สวมอยู่ฝากไม่ได้</div><div class="v8g">'+(bh||'<small>กระเป๋าว่าง</small>')+'</div></div></div></div>'}
+window.vQ8=q=>{VQ8.q=q;vRender8()};
+window.vIn8=(t,k)=>Guard.run('vaultIn',()=>{const src=t==='g'?GEAR:inv,dst=t==='g'?VAULT8.gear:VAULT8.mats;if(!(src[k]>0))return;if(!(dst[k]>0)&&vUsed8()>=vCap8()){say('คลังเต็ม — ขยายคลังได้');sfx('thud');return}
+ const n=Math.min(src[k],VQ8.q);src[k]-=n;if(t==='g'&&src[k]<=0)delete src[k];dst[k]=(dst[k]|0)+n;sfx('ui');vSave8();refreshInv();try{updQuick()}catch(e){}vRender8()},'isInteracting');
+window.vOut8=(t,k)=>Guard.run('vaultOut',()=>{const dst=t==='g'?GEAR:inv,src=t==='g'?VAULT8.gear:VAULT8.mats;if(!(src[k]>0))return;let n=Math.min(src[k],VQ8.q),got=0;
+ for(;got<n;got++){const c=t==='g'?canTakeGear(k):canTake(k);if(c!==true){if(!got)noRoom(c);break}src[k]--;dst[k]=(dst[k]|0)+1}if(src[k]<=0)delete src[k];if(got){sfx('ui');vSave8();refreshInv()}vRender8()},'isInteracting');
+window.vUp8=()=>{const c=VCOST8[VAULT8.lv|0];if(!c)return;if(inv.coin<c){say('เหรียญไม่พอ (ต้องใช้ '+c.toLocaleString()+')');sfx('thud');return}inv.coin-=c;VAULT8.lv=(VAULT8.lv|0)+1;sfx('chest');say('📦 ขยายคลังเป็น '+vCap8()+' ช่องแล้ว');vSave8();refreshInv();vRender8()};
+function openVault8(){if(!vOk8()){say('📦 เปิดคลังได้ในเมือง ในร้าน หรือที่ดินของคุณ');sfx('thud');return}p6open(vW8);vRender8()}
+window.openVault8=openVault8;window.vW8=vW8;
+{const st=document.createElement('style');st.textContent='#vlt8 .v8{display:flex;gap:8px;padding:8px;overflow:hidden}#vlt8 .v8p{flex:1;display:flex;flex-direction:column;min-width:0;background:rgba(0,0,0,.25);border-radius:10px;padding:6px}#vlt8 .v8t{font:800 12px system-ui;color:#ffe9a0;margin-bottom:5px}#vlt8 .v8g{flex:1;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(46px,1fr));gap:5px;align-content:start}#vlt8 .v8c{position:relative;aspect-ratio:1;border-radius:8px;background:radial-gradient(circle,#3a3050,#1a1428);border:1.5px solid #5a4a7a;display:flex;align-items:center;justify-content:center;cursor:pointer}#vlt8 .v8c img{width:80%;height:80%}#vlt8 .v8c em{position:absolute;right:2px;bottom:0;font:800 10px system-ui;font-style:normal;color:#fff;text-shadow:0 1px 2px #000}#vlt8 .v8up{margin-top:6px}#vlt8 .hd button.on{background:#ffe9a0;color:#3a2408}@media (max-width:600px){#vlt8 .v8{flex-direction:column}}';document.head.appendChild(st)}
+
+// =====================================================================
+// balance.js — เล่นชิล ๆ ไม่ยากไม่ง่าย + กันเงินเฟ้อ
+// =====================================================================
+(()=>{
+ // ชิล: มอนตีเบาลง 15% · ฟื้นเลือดนอกการต่อสู้เร็วขึ้น · ตายเสีย XP น้อยลง (5% → 2%)
+ const _zh=zHurt;zHurt=function(src,dmg,kbm,msg){return _zh(src,Math.max(1,Math.round(dmg*.85)),kbm,msg)};
+ try{BAL.regenDelay=4.5;BAL.regen=Math.max(BAL.regen,2.2);BAL.slimeDmg=Math.max(2,Math.round(BAL.slimeDmg*.85))}catch(e){}
+ const _rt=reviveTemple;reviveTemple=function(){if(!P.dead)return;const lv=P.lv,xp=P.xp;_rt();try{const lost=xp-P.xp;if(P.lv===lv&&lost>0){const keep=Math.round(lost*.6);P.xp+=keep;lvHud&&lvHud()}}catch(e){}};window.reviveTemple=reviveTemple;
+ // กันเงินเฟ้อ: กล่องดันเจี้ยนชั้นลึกไม่ให้เหรียญพุ่งไม่จำกัด (เพดานตามชั้น 120) · รางวัลชั้นไม่สิ้นสุดเพิ่มเป็นของ ไม่เพิ่มเหรียญ
+ const _rw=dgReward;dgReward=function(f){return _rw(f).filter((k,i,a)=>k!=='coin'||a.slice(0,i).filter(q=>q==='coin').length<10+Math.floor(Math.min(f,120)/4))};
+})();
+
+// =====================================================================
+// web.js — ส่งออก/นำเข้าเซฟ (ย้ายข้ามเครื่อง) · ติดตั้งเป็นแอปบนหน้าจอหลัก (PWA)
+// =====================================================================
+const SAVE8={ver:1};
+function saveKeys8(){const out={},names=new Set();for(let i=0;i<localStorage.length;i++){let K=localStorage.key(i);if(!K||/#(sig|bak|bsig)$/.test(K))continue;K=K.replace(/^u:[^:]*:/,'');if(/^fm_/.test(K))names.add(K)}
+ for(const k of names){if(/^fm_(set|accts|acct|last_acct|remember|chatfold|dev|lock|gmkey8)$/.test(k))continue;const v=localStorage.getItem(k);if(v!=null)out[k]=v}return out}
+function exportSave8(){return Guard.run('exportSave',()=>{try{saveGame(true)}catch(e){}const data=saveKeys8(),body=JSON.stringify(data),sum=sha256hex8('eldoria-save8|'+body).slice(0,16);
+ const pack={app:'eldoria',v:SAVE8.ver,name:P.name||'',lv:P.lv,t:new Date().toISOString(),sum,data};const txt=JSON.stringify(pack);
+ const code='ELD8:'+btoa(unescape(encodeURIComponent(txt)));let ok=false;
+ try{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type:'application/json'}));a.download='eldoria_save_'+(P.name||'hero')+'_Lv'+P.lv+'.json';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1500);ok=true}catch(e){}
+ try{navigator.clipboard&&navigator.clipboard.writeText(code).catch(()=>{})}catch(e){}
+ saveUI8('ส่งออกเซฟแล้ว ✅',(ok?'ไฟล์ <b>eldoria_save_…json</b> ถูกดาวน์โหลดลงเครื่อง · ':'')+'และคัดลอก "รหัสเซฟ" ไว้แล้ว (วางในแชท/โน้ตเก็บไว้ได้)<textarea readonly style="width:100%;height:70px;font-size:10px;margin-top:6px">'+code+'</textarea>');return true})}
+function importSave8(text){return Guard.run('importSave',()=>{let txt=String(text||'').trim();if(txt.startsWith('ELD8:'))txt=decodeURIComponent(escape(atob(txt.slice(5))));const p=JSON.parse(txt);
+ if(!p||p.app!=='eldoria'||!p.data)throw new Error('ไม่ใช่ไฟล์เซฟของเกมนี้');const sum=sha256hex8('eldoria-save8|'+JSON.stringify(p.data)).slice(0,16);if(sum!==p.sum)throw new Error('ไฟล์เซฟถูกแก้ไข/เสียหาย');
+ for(const k in p.data){if(!/^fm_/.test(k)||/^fm_(set|accts|acct|last_acct|remember|chatfold|dev|lock|gmkey8)$/.test(k))continue;localStorage.setItem(k,p.data[k])}
+ try{_noSave=true}catch(e){}{const SP=Storage.prototype,_s=SP.setItem;SP.setItem=function(k,v){if(/^fm_/.test(String(k)))return;return _s.call(this,k,v)}}say('📥 นำเข้าเซฟ '+(p.name||'')+' Lv.'+p.lv+' แล้ว — กำลังโหลดใหม่');setTimeout(()=>location.reload(),700);return true},null,e=>{saveUI8('นำเข้าไม่สำเร็จ ❌',String(e&&e.message||e))})}
+const saveW8=mk6('svw8');
+function saveUI8(title,msg){saveW8.innerHTML='<div class="w" style="width:min(440px,96%);height:auto;max-height:95%"><div class="hd"><b>💾 ย้ายเซฟข้ามเครื่อง</b><button onclick="p6close(gid(\'svw8\'))">✕</button></div><div class="bd" style="flex-direction:column;gap:8px;padding:10px;overflow-y:auto">'
+ +(title?'<div class="card"><b>'+title+'</b><div style="font-size:12px;margin-top:4px">'+msg+'</div></div>':'')
+ +'<button class="bt" onclick="exportSave8()">📤 ส่งออกเซฟ (ไฟล์ + รหัสเซฟ)</button>'
+ +'<label class="bt" style="text-align:center;cursor:pointer">📥 นำเข้าจากไฟล์<input type="file" accept=".json,application/json" style="display:none" onchange="const f=this.files[0];if(f)f.text().then(t=>importSave8(t))"></label>'
+ +'<textarea id="sv8code" placeholder="หรือวาง &quot;รหัสเซฟ&quot; (ขึ้นต้นด้วย ELD8:) ที่นี่" style="width:100%;height:60px;font-size:11px"></textarea><button class="bt" onclick="importSave8(gid(\'sv8code\').value)">📥 นำเข้าจากรหัสเซฟ</button>'
+ +'<small style="opacity:.75">นำเข้าจะแทนที่ตัวละครในไอดีที่เล่นอยู่ตอนนี้ · ไฟล์เซฟมีตัวตรวจ ถ้าถูกแก้จะนำเข้าไม่ได้</small></div></div>';
+ for(const t of saveW8.querySelectorAll('textarea'))for(const ev of ['keydown','keyup','keypress'])t.addEventListener(ev,e=>e.stopPropagation());if(saveW8.hidden)p6open(saveW8)}
+window.exportSave8=exportSave8;window.importSave8=importSave8;window.openSave8=()=>saveUI8('','');
+// ---------- PWA: ติดตั้งบนหน้าจอหลัก + เปิดเต็มจอ ----------
+const PWA8={evt:null,can:false};
+(function(){const web=location.protocol==='https:'&&!/claude\.ai|claudeusercontent|anthropic/.test(location.hostname);
+ if(!document.querySelector('link[rel=manifest]')&&web){const l=document.createElement('link');l.rel='manifest';l.href='manifest.webmanifest';document.head.appendChild(l)}
+ if(web&&'serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{})})}
+ window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();PWA8.evt=e;PWA8.can=true;try{pmRender7()}catch(_){}});
+ window.addEventListener('appinstalled',()=>{PWA8.can=false;say('📲 ติดตั้งเกมลงเครื่องแล้ว — เปิดจากไอคอนบนหน้าจอได้เลย')})})();
+const isStandalone8=()=>{try{return matchMedia('(display-mode: standalone)').matches||matchMedia('(display-mode: fullscreen)').matches||navigator.standalone===true}catch(e){return false}};
+function installApp8(){if(PWA8.evt){PWA8.evt.prompt();PWA8.evt.userChoice.finally(()=>{PWA8.evt=null});return}
+ const ios=/iphone|ipad|ipod/i.test(navigator.userAgent);talk({name:'ติดตั้งเกม',c:'#3a6a9a'},ios?'บน iPhone/iPad: เปิดใน Safari → แตะปุ่มแชร์ (สี่เหลี่ยมมีลูกศรขึ้น) → "เพิ่มไปยังหน้าจอโฮม"':'บน Android: เปิดใน Chrome → แตะ ⋮ มุมขวาบน → "ติดตั้งแอป" หรือ "เพิ่มลงในหน้าจอหลัก"',[BYE],'📲 ติดตั้งเกม')}
+window.installApp8=installApp8;
+
+// =====================================================================
+// social.js — ออนไลน์: เชื่อมเซิร์ฟเวอร์อัตโนมัติ · แชทเต็มรูปแบบ (กระซิบ/ประวัติ/รายชื่อ/ปิดเสียง) · PvP + สนามประลอง · เมนูโปรไฟล์ใหม่
+// =====================================================================
+// ---------- เชื่อมเซิร์ฟเวอร์อัตโนมัติ (อ่านจาก <meta name="eldoria-server"> หรือ ?server=) ----------
+(()=>{try{const m=document.querySelector('meta[name="eldoria-server"]'),q=(location.search.match(/[?&]server=([^&]+)/)||[])[1],url=q?decodeURIComponent(q):m&&m.content;
+ if(url&&/^wss:\/\//.test(url)&&!SET.server&&location.protocol==='https:'){SET.server=url;try{saveSet()}catch(e){}setTimeout(()=>{if(!NET.ws)netConnect()},1500)}}catch(e){}})();
+// ---------- ฉากสนามประลอง ----------
+{const _ns=netScene;netScene=function(){if(D&&D.arena8)return 'arena';return _ns()}}
+// ส่งข้อมูลเพิ่มให้ผู้เล่นอื่นเห็น (เพศ/สีชุด/PvP) — ผ่านการห่อ WebSocket.send ของเกม
+{const _send=WebSocket.prototype.send;WebSocket.prototype.send=function(s){try{if(this===NET.ws&&typeof s==='string'&&s.startsWith('{"t":"st"')){const o=JSON.parse(s);o.pvp=!!pvpOn8();o.look=window.LOOK8||null;s=JSON.stringify(o)}}catch(e){}return _send.call(this,s)}}
+// ---------- แชท ----------
+const CHAT8={mute:new Set((()=>{try{return JSON.parse(localStorage.getItem('fm_mute8')||'[]')}catch(e){return []}})()),lastW:''};
+const muteSave8=()=>{try{localStorage.setItem('fm_mute8',JSON.stringify([...CHAT8.mute]))}catch(e){}};
+const SCN8=sc=>!sc?'?':sc==='field'?'ทุ่งหญ้า':sc==='town'?'เมือง':sc==='arena'?'สนามประลอง':sc.startsWith('shop')?'ในร้าน':sc.startsWith('dg:')?'ดันเจี้ยนชั้น '+sc.slice(3):sc.startsWith('z:')?'เหมือง':sc;
+{const _nm=netMsg;netMsg=function(d){try{
+  if(d.t==='chat'&&CHAT8.mute.has(String(d.name)))return;
+  if(d.t==='hist'){const L=(d.list||[]).slice(-15);if(L.length){sysSay('💬 ข้อความล่าสุดก่อนคุณเข้า ('+L.length+')');for(const m of L)if(!CHAT8.mute.has(m.name))chatSay(m.ch,m.name,m.txt,'#8aa0b8')}return}
+  if(d.t==='whisper'){if(CHAT8.mute.has(String(d.from)))return;CHAT8.lastW=d.from;chatSay('gen','📩 '+d.from+' (กระซิบ)',d.txt,'#ff9ad8');sfx('ui');return}
+  if(d.t==='whisper_ok'){chatSay('gen','📨 ถึง '+d.to,d.txt,'#d88ac8');return}
+  if(d.t==='who'){const L=d.list||[];sysSay('👥 ออนไลน์ '+L.length+' คน');for(const p of L)sysSay('• '+p.name+' Lv.'+p.lv+(p.cls?' '+((CLS[p.cls]||{}).e||''):'')+' — '+SCN8(p.sc)+(p.pvp?' ⚔️PvP':''));return}
+  if(d.t==='pvphit'){pvpHurt8(d);return}
+ }catch(e){console.warn('[social] msg',e)}return _nm(d)}}
+const HELP8='คำสั่งแชท: /w ชื่อ ข้อความ (กระซิบ) · /r ข้อความ (ตอบกลับคนที่กระซิบล่าสุด) · /who (ใครออนไลน์) · /g ข้อความ (ช่องกิลด์) · /mute ชื่อ · /unmute ชื่อ · /pvp (เปิด/ปิด PvP)';
+{const _cs=chatSend;chatSend=function(){const ti=gid('chatTi'),t=(ti&&ti.value||'').trim();const done=()=>{ti.value='';try{ti.blur()}catch(e){}};let m;
+ if(/^\/(help|h|\?)$/i.test(t)){done();sysSay(HELP8);return}
+ if(/^\/who$/i.test(t)){done();if(!NET.on){sysSay('ยังไม่ได้เชื่อมต่อออนไลน์');return}netSend({t:'who'});return}
+ if((m=/^\/(w|whisper|กระซิบ)\s+(\S+)\s+([\s\S]+)$/i.exec(t))){done();if(!NET.on){sysSay('ยังไม่ได้เชื่อมต่อออนไลน์');return}netSend({t:'whisper',to:m[2],txt:m[3].slice(0,140)});return}
+ if((m=/^\/r\s+([\s\S]+)$/i.exec(t))){done();if(!CHAT8.lastW){sysSay('ยังไม่มีใครกระซิบมา');return}netSend({t:'whisper',to:CHAT8.lastW,txt:m[1].slice(0,140)});return}
+ if((m=/^\/mute\s+(\S+)$/i.exec(t))){done();CHAT8.mute.add(m[1]);muteSave8();sysSay('🔇 ปิดข้อความจาก '+m[1]);return}
+ if((m=/^\/unmute\s+(\S+)$/i.exec(t))){done();CHAT8.mute.delete(m[1]);muteSave8();sysSay('🔊 เปิดข้อความจาก '+m[1]);return}
+ if(/^\/pvp$/i.test(t)){done();togglePvp8();return}
+ return _cs()};try{gid('chatSend').onclick=()=>chatSend()}catch(e){}}
+// ---------- PvP ----------
+const PVP8={on:false,last:{},tog:0,hitT:0,dmgK:.35};
+const inArena8=()=>!!(D&&D.arena8);
+function pvpOn8(){return inArena8()||(PVP8.on&&!(D&&(D.town||D.shop||D.home)))}
+window.pvpOn8=pvpOn8;
+function togglePvp8(){const n=performance.now();if(inArena8()){say('⚔️ ในสนามประลอง PvP เปิดตลอด');return}if(D&&(D.town||D.shop||D.home)){say('ในเมือง/ที่ดินปลอดภัย — เปิด PvP ได้นอกเมือง');return}
+ if(n-PVP8.tog<5000){say('รอสักครู่ก่อนสลับ PvP อีกครั้ง');return}PVP8.tog=n;PVP8.on=!PVP8.on;say(PVP8.on?'⚔️ เปิด PvP — สู้ได้กับผู้เล่นที่เปิด PvP เหมือนกัน':'🛡️ ปิด PvP แล้ว');sfx(PVP8.on?'swing2':'ui');try{pmRender7()}catch(e){}}
+window.togglePvp8=togglePvp8;
+setInterval(()=>{if(PVP8.on&&D&&(D.town||D.shop||D.home)){PVP8.on=false;sysSay('🛡️ เข้าเขตปลอดภัย — ปิด PvP อัตโนมัติ')}},600);
+// ผู้เล่นฝ่ายตรงข้าม = เป้าหมายในระบบต่อสู้ (สกิล/ฟัน/ธนู/อัญเชิญ ใช้กับผู้เล่นได้ทันที)
+const PSE8=new Map();
+function pvpTargets8(){if(!NET.on||!pvpOn8())return [];const arena=inArena8(),out=[];for(const o of NET.others.values()){if(o.dead||!(arena||o.pvp))continue;let e=PSE8.get(o.id);
+  if(!e){e={pvp7:1,id:o.id,f:'skeleton',F:Object.assign({},FAM.skeleton,{spd:0}),sc:1,hp:1e9,max:1e9,L:1,nm:'',dead:false,elite:false,boss:false,col:['#999','#444','#fff'],st:'idle',stt:0,hurt:0,kx:0,ky:0,vx:0,vy:0,cd:9,t:0,z:0,aggro:0};PSE8.set(o.id,e)}
+  e.x=o.x;e.y=o.y;e.nm=o.name;e.L=o.lv|0;e.hp=1e9;e.dead=false;out.push(e)}return out}
+{const _en=enemies;enemies=function(){const L=_en(),pt=pvpTargets8();return pt.length?L.concat(pt):L}}
+{const _h=hurtE;hurtE=function(e,mult,o){if(!(e&&e.pvp7))return _h(e,mult,o);return Guard.run('pvpHit',()=>{const n=performance.now();if(n-(PVP8.last[e.id]||0)<140)return 0;PVP8.last[e.id]=n;
+  if(D&&D.zone&&!D.home&&typeof wallBetween7==='function'&&wallBetween7(P.x,P.y-6,e.x,e.y-6))return 0;const cr=Math.random()<critCh();
+  const dmg=Math.max(1,Math.round(clsAtk()*(isFinite(mult)?mult:1)*(.9+Math.random()*.2)*(cr?1.5:1)*PVP8.dmgK));netSend({t:'pvp',to:e.id,dmg,crit:cr});dmgTxt(e.x,e.y-40,String(dmg),cr?'#ffd84a':'#ff9a9a');return dmg})||0}}
+function pvpHurt8(d){if(!pvpOn8()||P.dead)return;const n=performance.now();if(n<PVP8.hitT)return;const dmg=Math.max(1,Math.round((d.dmg|0)-DEF()*.5));P.hp=Math.max(0,P.hp-dmg);P.red=.25;sfx('hurt');dmgTxt(P.x,P.y-44,'-'+dmg,'#ff5a5a');
+ if(P.hp<=0){P.hp=Math.round(BAL.hp*.6);P.mp=Math.max(P.mp,Math.round(BAL.mp*.4));PVP8.hitT=n+3000;P.iframe=Math.max(P.iframe||0,3);netSend({t:'pvpko',by:d.from});flash('#ff3a3a',.35);
+  if(inArena8()){const Z=D.zone;P.x=Z.ent.x*T+16;P.y=(Z.ent.y-1)*T+16;say('💥 แพ้ให้ '+d.name+' — กลับจุดเริ่มสนามประลอง (ไม่เสียของ/XP)')}else{PVP8.on=false;say('💥 แพ้ให้ '+d.name+' — ปิด PvP ให้อัตโนมัติ (ไม่เสียของ/XP)')}}}
+// ป้าย PvP เหนือหัวผู้เล่นอื่น
+if(typeof drawOther==='function'){const _do=drawOther;drawOther=function(o){_do(o);try{if(o.pvp||inArena8()){ctx.save();ctx.font='900 9px system-ui';ctx.textAlign='center';ctx.fillStyle='#ff4a4a';ctx.strokeStyle='#2a0000';ctx.lineWidth=3;ctx.strokeText('⚔️ PvP',o.x,o.y-84);ctx.fillText('⚔️ PvP',o.x,o.y-84);ctx.restore()}}catch(e){}}}
+// สนามประลอง
+const AR8={W:36,H:26,Zm:null};
+function buildArena8(){const W=AR8.W,H=AR8.H,m=[];for(let y=0;y<H;y++){m[y]=[];for(let x=0;x<W;x++)m[y][x]=(x<1||y<1||x>=W-1||y>=H-1)?WL:FL}
+ for(const [x,y] of [[8,7],[27,7],[8,18],[27,18]]){m[y][x]=WL}
+ const c=document.createElement('canvas');c.width=W*T;c.height=H*T;const k=c.getContext('2d');
+ for(let y=0;y<H;y++)for(let x=0;x<W;x++){const px=x*T,py=y*T,h=hash(x*1.3,y*2.1);k.fillStyle=m[y][x]===WL?'#4a3a2a':(h>.5?'#d8b878':'#cfae6e');k.fillRect(px,py,T,T);if(m[y][x]===FL&&h>.85){k.fillStyle='rgba(120,90,50,.25)';k.fillRect(px+8,py+12,6,3)}
+  if(m[y][x]===WL){k.fillStyle='#6a5640';k.fillRect(px+2,py+2,T-4,T-4);k.fillStyle='rgba(0,0,0,.25)';k.fillRect(px,py+T-6,T,6)}}
+ const cx=W*T/2,cy=H*T/2;k.strokeStyle='rgba(120,40,20,.55)';k.lineWidth=6;k.beginPath();k.ellipse(cx,cy,W*T*.36,H*T*.34,0,0,7);k.stroke();k.strokeStyle='rgba(255,230,160,.35)';k.lineWidth=2;k.beginPath();k.ellipse(cx,cy,W*T*.12,H*T*.11,0,0,7);k.stroke();
+ for(const [x,y] of [[8,7],[27,7],[8,18],[27,18]]){const px=x*T+16,py=y*T+16;k.fillStyle='#5a4a3a';k.fillRect(px-6,py-30,12,40);k.fillStyle='#a82a22';k.beginPath();k.moveTo(px,py-30);k.lineTo(px+18,py-24);k.lineTo(px,py-18);k.closePath();k.fill();k.fillStyle='#ffb04a';k.beginPath();k.arc(px,py-34,4,0,7);k.fill()}
+ k.font='900 22px Georgia,serif';k.textAlign='center';k.fillStyle='rgba(90,30,10,.55)';k.fillText('⚔ ARENA ⚔',cx,cy+8);
+ const floor=[];for(let y=1;y<H-1;y++)for(let x=1;x<W-1;x++)if(m[y][x]===FL)floor.push([x,y]);
+ return AR8.Zm={zi:400,Zd:{id:'arena',n:'สนามประลอง',e:'⚔️',lv:[1,1],dark:0,amb:'dust',pal:{vd:'#3a2a1a'},mobs:[],boss:null,ores:[],raw:'stone',ing:'ingSt'},m,ores:[],oreAt:{},floor,ent:{x:Math.floor(W/2),y:H-3},arena:{x:Math.floor(W/2),y:Math.floor(H/2)},seen:new Uint8Array(W*H).fill(1),W,H,cv:c}}
+function enterArena8(){return Guard.run('enterArena',()=>{if(D&&(D.zone||D.shop)){say('เข้าสนามประลองได้จากเมืองหรือทุ่งหญ้า');sfx('thud');return}const Zm=AR8.Zm||buildArena8();
+  LoadingScreenManager.cover({icon:'⚔️',title:'สนามประลอง',tip:'PvP เปิดตลอด · แพ้ไม่เสียของ/XP'},()=>{if(D&&D.town){try{exitD()}catch(e){}}
+   try{closeZMenu()}catch(e){}ZW=Zm.W;ZH=Zm.H;sfx('warp');setScene('town');flushDrops();if(!(dsav&&dsav.length))dsav=slimes.splice(0);else slimes.length=0;ZPROJ.length=0;
+   D={zone:Zm,mobs:[],spT:1e9,bossT:1e9,boss:null,ret:[ZG.x,ZG.y+40],ban:0,arena8:1};dm=Zm.m;dcv=Zm.cv;mkMini(Zm.cv,ZW,ZH,4);P.x=Zm.ent.x*T+16;P.y=(Zm.ent.y-1)*T+16;P.dir='u';P.kx=P.ky=0;MOUNT.on=false});
+  say('⚔️ สนามประลอง — PvP เปิดตลอด · '+(NET.on?'ผู้เล่นในสนาม '+[...NET.others.values()].length+' คน':'ยังไม่ได้ต่อออนไลน์ (ต้องต่อเซิร์ฟเวอร์จึงจะเจอผู้เล่นอื่น)'))})}
+function leaveArena8(){if(!inArena8())return;LoadingScreenManager.cover({icon:'🏰',title:'กลับเมือง'},()=>{exitD();enterTown(1)})}
+window.enterArena8=enterArena8;window.leaveArena8=leaveArena8;
+// ---------- เมนูโปรไฟล์: เพิ่มปุ่มใหม่ ----------
+try{const at=PM7.findIndex(m=>m[1]==='ตั้งค่า');PM7.splice(at<0?PM7.length-1:at,0,['📦','คลัง',()=>openVault8()],['👗','รูปลักษณ์',()=>openLook8()],['⚔️','PvP',()=>openPvp8()],['💾','ย้ายเซฟ',()=>openSave8()],['📲','ติดตั้งเกม',()=>installApp8()]);pmRender7()}catch(e){console.warn('[social] pm',e)}
+{const _pr=pmRender7;pmRender7=function(){_pr();try{for(const b of pm7.querySelectorAll('button')){const s=b.querySelector('small');if(!s)continue;if(s.textContent==='PvP'&&pvpOn8())b.style.boxShadow='0 0 0 2px #ff4a4a inset';if(s.textContent==='ติดตั้งเกม'&&isStandalone8())b.style.display='none'}}catch(e){}}}
+function openPvp8(){const on=pvpOn8(),ar=inArena8();talk({name:'ผู้คุมสนามประลอง',c:'#a82a22'},(ar?'เจ้าอยู่ในสนามประลอง — สู้กับทุกคนในสนามได้ แพ้แล้วกลับจุดเริ่ม ไม่เสียของ/XP':'PvP ตอนนี้: '+(on?'⚔️ เปิด':'🛡️ ปิด')+' · นอกเมืองสู้ได้เฉพาะผู้เล่นที่เปิด PvP ทั้งคู่ · ในเมืองปลอดภัยเสมอ'),
+ (ar?[{t:'🏰 ออกจากสนาม',c:'go',f:()=>leaveArena8()}]:[{t:on?'🛡️ ปิด PvP':'⚔️ เปิด PvP',c:'go',f:()=>togglePvp8()},{t:'🏟️ ไปสนามประลอง',f:()=>enterArena8()}]).concat([{t:'❓ คำสั่งแชท',stay:true,f:()=>talk({name:'แชท',c:'#3a6a9a'},HELP8,[BYE])},BYE]),'⚔️ PvP')}
+window.openPvp8=openPvp8;
+// ป้าย PvP ของเราบน HUD
+{const b=document.createElement('div');b.id='pvpb8';b.textContent='⚔️ PvP';b.style.cssText='position:absolute;left:8px;top:calc(98px + var(--st,0px));z-index:4;font:900 11px system-ui;color:#fff;background:#a82a22;border:1.5px solid #ffb0a0;border-radius:9px;padding:2px 7px;pointer-events:none;display:none';gid('wrap').appendChild(b);setInterval(()=>{b.style.display=pvpOn8()?'':'none';b.textContent=inArena8()?'⚔️ สนามประลอง':'⚔️ PvP'},400)}
+// GM อมตะใช้ไม่ได้ระหว่าง PvP (กันโกง)
+setInterval(()=>{try{if(pvpOn8()&&typeof GM7!=='undefined'&&GM7.god){GM7.god=false;say('ปิดอมตะ GM ระหว่าง PvP')}}catch(e){}},500);
 
 // ---------- สรุป ----------
 {const sm=menuEl.querySelector('small');if(sm)sm.insertAdjacentHTML('beforeend',' · H/N ดื่มยา · B กินอาหาร')}
