@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#1a1226"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><link rel="apple-touch-icon" href="icon-192.png"><meta name="eldoria-server" content="wss://eldoria-online.onrender.com">
-<title>ตำนานเอลโดเรีย v4.9</title>
+<title>ตำนานเอลโดเรีย v4.9.1</title>
 <style>
 :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#f3efe6;--fg:#2b2a26;--card:#fff;--bd:#cfc8b8}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1d1c19;--fg:#ece7da;--card:#2a2925;--bd:#4a4740}}
@@ -9145,6 +9145,99 @@ const isStandalone8=()=>{try{return matchMedia('(display-mode: standalone)').mat
 function installApp8(){if(PWA8.evt){PWA8.evt.prompt();PWA8.evt.userChoice.finally(()=>{PWA8.evt=null});return}
  const ios=/iphone|ipad|ipod/i.test(navigator.userAgent);talk({name:'ติดตั้งเกม',c:'#3a6a9a'},ios?'บน iPhone/iPad: เปิดใน Safari → แตะปุ่มแชร์ (สี่เหลี่ยมมีลูกศรขึ้น) → "เพิ่มไปยังหน้าจอโฮม"':'บน Android: เปิดใน Chrome → แตะ ⋮ มุมขวาบน → "ติดตั้งแอป" หรือ "เพิ่มลงในหน้าจอหลัก"',[BYE],'📲 ติดตั้งเกม')}
 window.installApp8=installApp8;
+
+// =====================================================================
+// cloud.js — บัญชีออนไลน์: ไอดีเดียวเล่นได้ทุกเบราว์เซอร์ · ซิงค์เซฟขึ้นเซิร์ฟเวอร์อัตโนมัติ
+// เซฟในเครื่องยังอยู่เป็นสำรองเสมอ (ถ้าเซิร์ฟเวอร์ล่ม/รีเซ็ต เกมจะอัพโหลดเซฟในเครื่องกลับให้เอง)
+// =====================================================================
+const CLOUD={busy:false,rev:0,last:'',ok:null,t:0,fails:0,conflict:0};
+CLOUD.base=()=>{try{const m=document.querySelector('meta[name="eldoria-server"]'),q=(location.search.match(/[?&]server=([^&]+)/)||[])[1];
+ let u=(SET&&SET.server)||(q?decodeURIComponent(q):'')||(m&&m.content)||'';u=String(u).trim();if(!u)return '';
+ u=u.replace(/^wss:\/\//,'https://').replace(/^ws:\/\//,'http://');if(!/^https?:\/\//.test(u))u='https://'+u;return u.replace(/\/+$/,'')}catch(e){return ''}};
+CLOUD.tokKey=id=>'cloud_tok_'+String(id).toLowerCase();
+CLOUD.tok=id=>{try{return FM_RAW.get(CLOUD.tokKey(id))||''}catch(e){return ''}};
+CLOUD.call=async function(path,body,ms){const b=CLOUD.base();if(!b)return {err:'nourl'};const ac=new AbortController(),tm=setTimeout(()=>ac.abort(),ms||30000);
+ try{const r=await fetch(b+path,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body||{}),signal:ac.signal,keepalive:JSON.stringify(body||{}).length<60000&&!!(body&&body.ka)});
+  const j=await r.json();CLOUD.ok=true;return j}catch(e){CLOUD.ok=false;return {err:'offline'}}finally{clearTimeout(tm)}};
+const cloudMsg=m=>{try{if(typeof tErr==='function'&&document.getElementById('tpan'))tErr(m)}catch(e){}};
+const CLOUD_ERR={badid:'ไอดีไม่ถูกต้อง',badpw:'รหัสผ่านไม่ถูกต้อง',taken:'ไอดีนี้มีคนใช้แล้วในเซิร์ฟเวอร์ — เลือกไอดีอื่น',rate:'ลองเร็วเกินไป รอสักครู่',store:'เซิร์ฟเวอร์บันทึกไม่ได้ ลองใหม่อีกครั้ง',server:'เซิร์ฟเวอร์มีปัญหา ลองใหม่อีกครั้ง'};
+// อ่านเลเวลของเซฟในเครื่อง (ตอนยังไม่ล็อกอิน)
+CLOUD.localLv=id=>{try{const raw=localStorage.getItem('u:'+id+':fm_save_v1');if(!raw)return 0;const d=JSON.parse(raw);return d&&d.lv|0}catch(e){return 0}};
+CLOUD.pendKey='fm_cloudpend';
+// ---------- สมัคร ----------
+{const _reg=accRegister;accRegister=async function(id,pw,pw2,nm,mig){
+ if(CLOUD.busy||!CLOUD.base())return _reg(id,pw,pw2,nm,mig);
+ id=(id||'').trim();nm=(nm||'').trim().slice(0,14);
+ // ตรวจเงื่อนไขพื้นฐานด้วยโค้ดเดิมก่อน (ไม่สร้างบัญชีจริงถ้ายังไม่ผ่าน)
+ const A=ACC.all;if(Object.keys(A).some(k=>k.toLowerCase()===id.toLowerCase()))return 'ไอดีนี้มีคนใช้แล้ว';
+ if(!/^[A-Za-z0-9_ก-๙]{3,16}$/.test(id)||(pw||'').length<6||pw!==pw2||!nm)return _reg(id,pw,pw2,nm,mig);
+ cloudMsg('⏳ กำลังเชื่อมต่อเซิร์ฟเวอร์ (ครั้งแรกอาจใช้เวลาถึง 1 นาที)…');
+ const r=await CLOUD.call('/api/register',{id,pw,name:nm},60000);
+ if(r.ok){try{FM_RAW.set(CLOUD.tokKey(id),r.token);FM_RAW.set('cloud_rev_'+id.toLowerCase(),'0')}catch(e){}CLOUD.busy=true;try{return await _reg(id,pw,pw2,nm,mig)}finally{CLOUD.busy=false}}
+ if(r.err==='offline')return _reg(id,pw,pw2,nm,mig); // เซิร์ฟเวอร์ไม่ตอบ: สมัครในเครื่องก่อน ระบบจะผูกบัญชีให้ตอนล็อกอินครั้งถัดไป
+ return CLOUD_ERR[r.err]||('สมัครไม่สำเร็จ ('+r.err+')');
+}}
+// ---------- ล็อกอิน ----------
+{const _login=accLogin;accLogin=async function(id,pw,rem){
+ if(CLOUD.busy||!CLOUD.base())return _login(id,pw,rem);
+ id=(id||'').trim();const A=ACC.all,key=Object.keys(A).find(k=>k.toLowerCase()===id.toLowerCase());
+ cloudMsg('⏳ กำลังเชื่อมต่อเซิร์ฟเวอร์ (ครั้งแรกอาจใช้เวลาถึง 1 นาที)…');
+ const r=await CLOUD.call('/api/login',{id,pw},60000);
+ if(r.err==='offline'){if(key)return _login(id,pw,rem);return 'เชื่อมเซิร์ฟเวอร์ไม่ได้ — ลองใหม่อีกครั้ง'}
+ if(r.err==='locked')return '🔒 ใส่รหัสผิดหลายครั้ง ลองใหม่ใน '+r.wait+' วินาที';
+ if(r.err==='nouser'){
+  if(!key)return 'ไม่พบไอดีนี้ — สมัครก่อนนะ';
+  // บัญชีเก่าในเครื่อง: ตรวจรหัสในเครื่อง แล้วจดทะเบียนบนเซิร์ฟเวอร์ให้
+  if(!await accVerify(key,pw))return _login(id,pw,rem);
+  const rr=await CLOUD.call('/api/register',{id:key,pw,name:(FM_RAW.get('u:'+key+':fm_name')||A[key].n||'')},30000);
+  if(rr.ok){try{FM_RAW.set(CLOUD.tokKey(key),rr.token);FM_RAW.set('cloud_rev_'+key.toLowerCase(),'0')}catch(e){}}
+  else if(rr.err==='taken')return 'ไอดีนี้ถูกใช้ในเซิร์ฟเวอร์แล้ว (รหัสผ่านต่างกัน) — ใช้ไอดีอื่น หรือแจ้ง GM';
+  CLOUD.busy=true;try{return await _login(key,pw,rem)}finally{CLOUD.busy=false}}
+ if(r.err==='badpw'){return key?'รหัสผ่านไม่ตรงกับบัญชีออนไลน์ของไอดีนี้':CLOUD_ERR.badpw}
+ if(!r.ok)return CLOUD_ERR[r.err]||('เข้าสู่ระบบไม่สำเร็จ ('+r.err+')');
+ const cid=r.id||id;
+ try{FM_RAW.set(CLOUD.tokKey(cid),r.token);FM_RAW.set('cloud_rev_'+cid.toLowerCase(),String(r.rev|0))}catch(e){}
+ const localLv=key?CLOUD.localLv(key):0,useCloud=!!r.save&&((r.lv|0)>localLv||!key);
+ if(useCloud){try{sessionStorage.setItem(CLOUD.pendKey,JSON.stringify({id:cid,save:r.save}))}catch(e){}}
+ CLOUD.busy=true;
+ try{
+  if(key)return await _login(key,pw,rem);
+  // เบราว์เซอร์นี้ยังไม่มีบัญชี: สร้างบัญชีในเครื่องจากข้อมูลออนไลน์
+  const nm=(r.name||cid).slice(0,14)||cid;const m=await accRegister(cid,pw,pw,nm,false);return m
+ }finally{CLOUD.busy=false}
+}}
+// ---------- เปลี่ยนรหัส ----------
+{const _cp=accChangePw;accChangePw=async function(o,n,n2){const m=await _cp(o,n,n2);if(m||!FM_ACCT||!CLOUD.base())return m;
+ const r=await CLOUD.call('/api/pw',{id:FM_ACCT,token:CLOUD.tok(FM_ACCT),old:o,pw:n});if(r&&r.ok)try{FM_RAW.set(CLOUD.tokKey(FM_ACCT),r.token)}catch(e){}return m}}
+// ---------- นำเข้าเซฟจากเซิร์ฟเวอร์ตอนเริ่มเกม (ก่อนเกมโหลดเซฟ) ----------
+CLOUD.applyBlob=function(blob){const data=JSON.parse(blob);let n=0;for(const k in data){if(!/^fm_/.test(k)||/^fm_(set|accts|acct|last_acct|remember|chatfold|dev|lock|gmkey8)$/.test(k))continue;localStorage.setItem(k,data[k]);n++}return n};
+CLOUD.boot=function(){try{const raw=sessionStorage.getItem(CLOUD.pendKey);if(!raw)return false;sessionStorage.removeItem(CLOUD.pendKey);const p=JSON.parse(raw);if(!FM_ACCT||String(p.id).toLowerCase()!==String(FM_ACCT).toLowerCase())return false;
+ const n=CLOUD.applyBlob(p.save);if(n){try{sessionStorage.setItem('fm_go','1')}catch(e){}CLOUD.reloading=true;try{_noSave=true}catch(e){}{const SP=Storage.prototype,_s=SP.setItem;SP.setItem=function(k,v){if(/^fm_/.test(String(k)))return;return _s.call(this,k,v)}}location.reload();return true}}catch(e){console.warn('cloud boot',e)}return false};
+// ---------- ซิงค์อัตโนมัติ ----------
+CLOUD.revKey=()=>'cloud_rev_'+String(FM_ACCT||'').toLowerCase();
+CLOUD.sync=async function(force,ka){if(!FM_ACCT||CLOUD.busy||CLOUD.reloading||!CLOUD.base()||!CLOUD.tok(FM_ACCT))return;if(typeof P==='undefined'||!P||P.dead&&!force)return;
+ if(CLOUD.inflight)return;CLOUD.inflight=true;
+ try{try{saveGame()}catch(e){}
+  const data=saveKeys8(),save=JSON.stringify(data);if(!force&&save===CLOUD.last)return;
+  let base=+FM_RAW.get(CLOUD.revKey())||0;
+  const body={id:FM_ACCT,token:CLOUD.tok(FM_ACCT),save,lv:P.lv|0,cls:P.cls||'',name:P.name||'',base,ka:!!ka,stat:{floor:(window.__MAXFLOOR8|0),mine:0,kills:0}};
+  let r=await CLOUD.call('/api/save',body,40000);
+  if(r.err==='conflict'){ // มีเซฟใหม่กว่าจากอีกเครื่อง
+   if((r.lv|0)>(P.lv|0)&&!CLOUD.conflictOK){const l=await CLOUD.call('/api/load',{id:FM_ACCT,token:CLOUD.tok(FM_ACCT)});
+    if(l.ok&&l.save){sessionStorage.setItem(CLOUD.pendKey,JSON.stringify({id:FM_ACCT,save:l.save}));FM_RAW.set(CLOUD.revKey(),String(l.rev|0));try{say('☁️ พบตัวละครเลเวลสูงกว่าบนเซิร์ฟเวอร์ — กำลังโหลดมาให้')}catch(e){}CLOUD.reloading=true;setTimeout(()=>location.reload(),900);return}}
+   body.base=r.rev|0;body.force=true;r=await CLOUD.call('/api/save',body,40000)}
+  if(r.ok){CLOUD.last=save;CLOUD.fails=0;FM_RAW.set(CLOUD.revKey(),String(r.rev|0));CLOUD.t=Date.now();if(!CLOUD.said){CLOUD.said=true;try{say('☁️ ซิงค์เซฟกับเซิร์ฟเวอร์แล้ว — ล็อกอินไอดีนี้ที่เครื่องไหนก็ได้')}catch(e){}}}
+  else if(r.err==='auth'){try{FM_RAW.del(CLOUD.tokKey(FM_ACCT))}catch(e){}CLOUD.fails=9}
+  else CLOUD.fails++;
+ }catch(e){CLOUD.fails++}finally{CLOUD.inflight=false}};
+if(!CLOUD.boot()){
+ setInterval(()=>{if(!document.hidden||CLOUD.fails<3)CLOUD.sync(false)},CLOUD_SYNC_MS());
+ document.addEventListener('visibilitychange',()=>{if(document.hidden)CLOUD.sync(false,true)});
+ addEventListener('pagehide',()=>{CLOUD.sync(false,true)});
+ setTimeout(()=>CLOUD.sync(false),4000);
+}
+function CLOUD_SYNC_MS(){return 45000}
+window.CLOUD=CLOUD;
 
 // =====================================================================
 // social.js — ออนไลน์: เชื่อมเซิร์ฟเวอร์อัตโนมัติ · แชทเต็มรูปแบบ (กระซิบ/ประวัติ/รายชื่อ/ปิดเสียง) · PvP + สนามประลอง · เมนูโปรไฟล์ใหม่

@@ -13,7 +13,10 @@ let nextId = 1;
 // ไฟล์เว็บ (ถ้ามี) — เสิร์ฟเกมจากเซิร์ฟเวอร์เดียวกันได้
 const STATIC = { '/': ['index.html','text/html; charset=utf-8'], '/index.html': ['index.html','text/html; charset=utf-8'], '/manifest.webmanifest': ['manifest.webmanifest','application/manifest+json'],
   '/sw.js': ['sw.js','text/javascript; charset=utf-8'], '/icon-192.png': ['icon-192.png','image/png'], '/icon-512.png': ['icon-512.png','image/png'] };
+const ACC = require('./accounts');
+const originOk = (o, host) => { if (!o || o === 'null' || o === 'file://') return true; if (!ALLOWED_ORIGINS.length || ALLOWED_ORIGINS.includes(o)) return true; try { return new URL(o).host === host; } catch (e) { return false; } };
 const server = http.createServer((req, res) => {
+  if (ACC.middleware(req, res, o => originOk(o, req.headers.host || ''))) return;
   const u = (req.url || '/').split('?')[0], f = STATIC[u];
   if (f && fs.existsSync(path.join(__dirname, f[0]))) { res.writeHead(200, { 'content-type': f[1], 'x-content-type-options': 'nosniff', 'cache-control': u === '/sw.js' ? 'no-cache' : 'public, max-age=300' }); fs.createReadStream(path.join(__dirname, f[0])).pipe(res); return; }
   res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8', 'access-control-allow-origin': '*' }); res.end('Eldoria online server OK — players: ' + players.size);
