@@ -100,4 +100,9 @@ function middleware(req, res, allowOrigin) {
   });
   return true;
 }
-module.exports = { middleware, handle, GM_IDS };
+
+// ---- ใช้กับเซิร์ฟเวอร์เกม: ยืนยันตัวตน + กล่องจดหมาย (ของจากประมูล/บอสโลก ส่งถึงแม้ออฟไลน์) ----
+async function verify(id, token) { const lid = clean(id, 16).toLowerCase(); if (!ID_RE.test(lid)) return null; const rec = await dbGet(lid); if (!await authToken(rec, token)) return null; return { lid, name: rec.name || id, gm: !!rec.gm || GM_IDS.includes(lid) }; }
+async function mailAdd(lid, item) { const rec = await dbGet(lid); if (!rec) return false; rec.mail = (rec.mail || []).slice(-60); rec.mail.push(Object.assign({ ts: Date.now() }, item)); return dbSet(lid, rec); }
+async function mailTake(lid) { const rec = await dbGet(lid); if (!rec || !rec.mail || !rec.mail.length) return []; const m = rec.mail; rec.mail = []; await dbSet(lid, rec); return m; }
+module.exports = { middleware, handle, GM_IDS, verify, mailAdd, mailTake };
