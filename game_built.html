@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#1a1226"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><link rel="apple-touch-icon" href="icon-192.png"><meta name="eldoria-server" content="wss://eldoria-online.onrender.com">
-<title>ตำนานเอลโดเรีย v4.12</title>
+<title>ตำนานเอลโดเรีย v4.13</title>
 <style>
 :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#f3efe6;--fg:#2b2a26;--card:#fff;--bd:#cfc8b8}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1d1c19;--fg:#ece7da;--card:#2a2925;--bd:#4a4740}}
@@ -7381,10 +7381,8 @@ const swShoulder6=(x,by,d,f)=>d==='d'?[x-10,by-24]:d==='u'?[x+10,by-24]:[x+f*1,b
   ctx.save();ctx.translate(P.x,P.y);ctx.transform(1,0,-hxo/44,1,0,0);ctx.scale(1,sq);ctx.translate(-P.x,-P.y);try{_hb()}finally{ctx.restore()}}}
 
 // ---------- C. ค้อน: เอาออกจากช่องลัด · ใช้อัตโนมัติตอนก่อสร้าง (ท่าตอกตะปู) ----------
-{const _qc=qCands;qCands=function(){return _qc().filter(c=>c.id!=='t_hamr')}}
-{const _q=quickUseId;quickUseId=function(id){if(id==='t_hamr'){const i=QS.slots.indexOf(id);if(i>=0)QS.slots[i]=null;try{updQuick()}catch(e){}say('🔨 ค้อนจะหยิบใช้เองตอนสร้างบ้าน/สิ่งก่อสร้าง');return}return _q(id)}}
 function hamClean6(){try{let ch=0;for(let i=0;i<QS.slots.length;i++)if(QS.slots[i]==='t_hamr'){QS.slots[i]=null;ch=1}if(QS.cur==='t_hamr')QS.cur=null;if(P.tool==='hamr'){P.tool=P.armor.sword?'sword':'axe';P.draw=false;ch=1}if(ch)updQuick()}catch(e){}}
-setInterval(hamClean6,1500);
+
 // รื้อของตกแต่ง (เดิมใช้ค้อนชี้) → หันหน้าเข้าหาแล้วกดปุ่มใช้/คุย
 {const _ha=homeAct;homeAct=function(){const r=_ha();if(r)return r;try{const [tx,ty]=target(),Zm=ZCACHE[300],o=Zm&&Zm.oreAt[ty*HW+tx];if(o&&o.type==='bld'&&BLD[o.b.k]&&BLD[o.b.k].deco){askRemove(o.b);return true}}catch(e){}return false}}
 // ท่าตอกตะปู: ระหว่างตอก ให้ระบบเดิมถือว่า "กำลังใช้เครื่องมือ" (ซ่อนแขนข้างที่ถือ ไม่ให้เป็น 3 แขน) แล้ววาดท่าตอกแทนท่าฟัน
@@ -9457,7 +9455,56 @@ window.DROP9=function(t,k,all,sure){const n=t==='gear'?(GEAR[k]|0):(inv[k]|0);if
 {const _ic=icShow;icShow=function(t,k,ro,at){_ic(t,k,ro,at);try{if(ro||icEl.hidden||!k||k==='coin'||icEl.querySelector('.drp9'))return;
   const n=t==='gear'?(GEAR[k]|0):(inv[k]|0);if(n<=0)return;
   let box=icEl.querySelector('.ib');if(!box){box=document.createElement('div');box.className='ib';icEl.appendChild(box)}
-  box.insertAdjacentHTML('beforeend','<button class="drp9 no" id="drp19" onclick="DROP9(\''+t+'\',\''+k+'\',0)">🗑️ ทิ้ง'+(n>1?' 1 ชิ้น':'')+'</button>'+(n>1?'<button class="drp9 no" id="drpA9" onclick="DROP9(\''+t+'\',\''+k+'\',1)">🗑️ ทิ้งทั้งหมด ×'+n+'</button>':''))}catch(e){}}}
+  box.insertAdjacentHTML('beforeend','<button class="drp9" style="background:#5a1f26;border-color:#c0475a;color:#ffd7dc;opacity:1" id="drp19" onclick="DROP9(\''+t+'\',\''+k+'\',0)">🗑️ ทิ้ง'+(n>1?' 1 ชิ้น':'')+'</button>'+(n>1?'<button class="drp9" style="background:#5a1f26;border-color:#c0475a;color:#ffd7dc;opacity:1" id="drpA9" onclick="DROP9(\''+t+'\',\''+k+'\',1)">🗑️ ทิ้งทั้งหมด ×'+n+'</button>':''))}catch(e){}}}
+
+// =====================================================================
+// fix4.js — ชุดแก้ #4 (v4.13)
+//  55/92 เปลี่ยนอาชีพ → รีสเตตัส + พาสซีฟ + สกิลอาชีพ (ต้องเก็บ/เรียนใหม่) · 57/61 เลเวลไม่ลดตอนเลือกอาชีพ + เควสเลือกอาชีพ
+//  62 ช่องลัด: ปุ่ม ✎ เลือกของใส่ได้ทันที · 63 ค้อน + เมล็ดพันธุ์ ใส่ช่องลัดได้
+// =====================================================================
+// ---------- เปลี่ยนอาชีพ: ยืนยัน 2 ครั้ง + รีค่าทั้งหมด ----------
+window.CLSCONF9={k:null,t:0};
+{const _pc=pickClass;pickClass=function(k){
+  if(P.lv<CLASS_LV||P.cls===k||P.cls==='none'){const lv0=P.lv,xp0=P.xp;_pc(k);if(P.lv<lv0){P.lv=lv0;P.xp=xp0;try{recalcStats()}catch(e){}}return}
+  const now=performance.now();
+  if(CLSCONF9.k!==k||now-CLSCONF9.t>6000){CLSCONF9.k=k;CLSCONF9.t=now;sfx('thud');say('⚠️ เปลี่ยนอาชีพ: สเตตัส พาสซีฟ และสกิลอาชีพจะ "รีเซ็ตทั้งหมด" (ได้แต้มคืนให้แจกใหม่) — แตะอีกครั้งภายใน 6 วิเพื่อยืนยัน');return}
+  CLSCONF9.k=null;const lv0=P.lv,xp0=P.xp,cost=500;if(inv.coin<cost){_pc(k);return}
+  _pc(k);if(P.cls!==k)return;
+  try{
+   // สเตตัส: คืนแต้มทั้งหมด
+   const bs=baseStats();let back=0;for(const s in bs){const v=bs[s]|0;if(v>0){P.stats[s]-=v;back+=v}}
+   P.sp=(P.sp|0)+back;
+   // พาสซีฟ: รีต้นไม้
+   PT.a=new Set(['c0']);savePT();ptDirty();
+   // สกิลอาชีพ: ต้องเรียนใหม่ทุกสาย (สกิลกลางยังอยู่)
+   for(const c in CSK)for(let i=0;i<CSK[c].length;i++)CSK[c][i]=0;saveCls();
+   P.lv=lv0;P.xp=xp0;recalcStats();P.hp=Math.min(P.hp,BAL.hp);P.mp=Math.min(P.mp,BAL.mp);
+   try{refreshInv();if(!chp.hidden)renderChar();renderSkw&&!skwEl.hidden&&renderSkw()}catch(e){}
+   say('🔄 รีเซ็ตแล้ว: คืนแต้มสเตตัส '+back+' แต้ม · ล้างพาสซีฟ · สกิลอาชีพต้องเรียนใหม่ที่ร้านสกิล (เลเวลคงเดิม Lv.'+P.lv+')');
+   try{saveGame()}catch(e){}}catch(e){console.warn('[v413] cls reset',e)}}}
+// ---------- เควสเลือกอาชีพ: ขึ้นที่แถบเควสเมื่อถึง Lv.10 แล้วยังไม่มีอาชีพ (ไม่ต้องผ่านบทสอน) ----------
+function clsQ9(){return P.cls==='none'&&P.lv>=CLASS_LV}
+{const _ut=updTrack;updTrack=function(){const r=_ut.apply(this,arguments);try{if(!qtEl)return r;let g=qtEl.querySelector('.cq9');
+   if(!clsQ9()){if(g)g.remove();return r}
+   const h='<div class="cq9" style="margin-top:6px;padding-top:5px;border-top:1px solid rgba(255,216,74,.4)"><b>🎓 เควส: เลือกอาชีพ</b>ไปหาปรมาจารย์ซีรอสที่จัตุรัสกลางเมือง (Lv.'+CLASS_LV+' ขึ้นไปแล้ว)</div>';
+   if(!g)qtEl.insertAdjacentHTML('beforeend',h);qtEl.hidden=false}catch(e){}return r}}
+let _cq9=0;setInterval(()=>{try{if(!titleEl.hidden||P.dead)return;const need=clsQ9();if(need!==!!_cq9){_cq9=need?1:0;updTrack()}
+  if(need&&!window._cqSaid9){window._cqSaid9=1;sysSay('🎓 เควสใหม่: ถึง Lv.'+CLASS_LV+' แล้ว! ไปเลือกอาชีพกับปรมาจารย์ซีรอสที่จัตุรัสกลางเมือง');banner&&banner('🎓 เควส: เลือกอาชีพ')}}catch(e){}},1500);
+// ---------- ช่องลัด: ค้อน + เมล็ดพันธุ์ + ปุ่ม ✎ ----------
+window.SEEDSEL9=null;
+{const _qc=qCands;qCands=function(){const L=_qc();try{if(inv.t_hamr>0&&!L.some(c=>c.id==='t_hamr'))L.splice(1,0,{id:'t_hamr',name:FTOOLS.hamr[0]+' '+TIERN[HOME.tools.hamr|0]});
+   for(const k in CROPS)if(inv['sd_'+k]>0)L.push({id:'sd_'+k,name:'เมล็ด'+CROPS[k].n,n:inv['sd_'+k]})}catch(e){}return L}}
+const qName0=null;
+{const _q=quickUseId;quickUseId=function(id){if(typeof id==='string'&&/^sd_/.test(id)){const k=id.slice(3);if(!(inv[id]>0)){say('เมล็ดหมดแล้ว');return}
+   SEEDSEL9=k;sfx('ui');
+   if(D&&D.home){try{const [tx,ty]=target(),t=HOME.tiles[tx+','+ty];if(t&&t.till&&!t.crop){plant(tx,ty,k);return}}catch(e){}say('🌱 เลือก'+('เมล็ด'+CROPS[k].n)+' แล้ว — ยืนหน้าแปลงที่ขุดแล้ว กดใช้ (E) เพื่อปลูก')}
+   else say('🌱 เลือกเมล็ด'+CROPS[k].n+' แล้ว — ใช้ในที่ดินผู้กล้า');return}
+  return _q(id)}}
+{const _sp=seedPicker;seedPicker=function(tx,ty){const k=SEEDSEL9;if(k&&CROPS[k]&&inv['sd_'+k]>0){plant(tx,ty,k);return}return _sp(tx,ty)}}
+// ปุ่ม ✎ มุมช่อง → เปิดตัวเลือกของทันที (แตะที่ช่องยังใช้ของเหมือนเดิม)
+for(let i=0;i<4;i++){const el=document.getElementById('q'+i);if(!el||el.querySelector('.qe9'))continue;const b=document.createElement('span');b.className='qe9';b.textContent='✎';
+ b.style.cssText='position:absolute;right:-2px;top:-6px;width:20px;height:20px;border-radius:50%;background:#1A1A24;border:1.5px solid #D4AF37;color:#D4AF37;font-size:12px;line-height:17px;text-align:center;z-index:3;cursor:pointer;touch-action:manipulation';
+ b.onpointerdown=e=>{e.stopPropagation();e.preventDefault();clearTimeout(QS.lp);QS.lp=null;openQPick(i)};b.onpointerup=e=>{e.stopPropagation()};el.style.position=el.style.position||'relative';el.appendChild(b)}
 
 // ---------- สรุป ----------
 {const sm=menuEl.querySelector('small');if(sm)sm.insertAdjacentHTML('beforeend',' · H/N ดื่มยา · B กินอาหาร')}
