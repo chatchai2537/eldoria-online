@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#1a1226"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><link rel="apple-touch-icon" href="icon-192.png"><meta name="eldoria-server" content="wss://eldoria-online.onrender.com">
-<title>ตำนานเอลโดเรีย v4.13</title>
+<title>ตำนานเอลโดเรีย v4.14</title>
 <style>
 :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#f3efe6;--fg:#2b2a26;--card:#fff;--bd:#cfc8b8}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1d1c19;--fg:#ece7da;--card:#2a2925;--bd:#4a4740}}
@@ -3006,7 +3006,7 @@ function updMob(m,dt){const F=m.F,dx=P.x-m.x,dy=P.y-m.y,dist=Math.hypot(dx,dy)||
  m.t+=dt;if(m.hurt>0)m.hurt-=dt;if(m.flash>0)m.flash-=dt;
  if(m.kx||m.ky){mvM(m,m.kx*dt,m.ky*dt);const d=Math.pow(.02,dt);m.kx*=d;m.ky*=d;if(Math.abs(m.kx)+Math.abs(m.ky)<4)m.kx=m.ky=0}
  if(Math.abs(nx)>.2)m.fx=nx<0?-1:1;
- const see=m.boss?260:220;if(!m.aggro&&dist<see)m.aggro=1;if(m.aggro&&dist>(m.boss?520:430)&&m.st!=='lunge'&&m.st!=='charge'){m.aggro=0;m.st='idle'}
+ const see=m.boss?260:220;if(!m.aggro&&dist<see&&(!window.LOS9||LOS9(m.x,m.y-4,P.x,P.y-4)))m.aggro=1;if(m.aggro&&dist>(m.boss?520:430)&&m.st!=='lunge'&&m.st!=='charge'){m.aggro=0;m.st='idle'}
  m.cd-=dt*(enr?1.4:1);m.mv=false;
  switch(m.st){
   case 'idle':{if(m.aggro){m.st='chase';break}if((m.stt-=dt)<=0){m.stt=rnd(1.2,3);const a=Math.random()*6.28;m.wx=Math.cos(a);m.wy=Math.sin(a);if(Math.random()<.35)m.wx=m.wy=0;
@@ -9505,6 +9505,35 @@ const qName0=null;
 for(let i=0;i<4;i++){const el=document.getElementById('q'+i);if(!el||el.querySelector('.qe9'))continue;const b=document.createElement('span');b.className='qe9';b.textContent='✎';
  b.style.cssText='position:absolute;right:-2px;top:-6px;width:20px;height:20px;border-radius:50%;background:#1A1A24;border:1.5px solid #D4AF37;color:#D4AF37;font-size:12px;line-height:17px;text-align:center;z-index:3;cursor:pointer;touch-action:manipulation';
  b.onpointerdown=e=>{e.stopPropagation();e.preventDefault();clearTimeout(QS.lp);QS.lp=null;openQPick(i)};b.onpointerup=e=>{e.stopPropagation()};el.style.position=el.style.position||'relative';el.appendChild(b)}
+
+// =====================================================================
+// fix5.js — ชุดแก้ #5 (v4.14)  สายตามอนสเตอร์ (LOS): มองไม่เห็นผู้เล่นผ่านกำแพง/แร่ → ไม่ล็อกเป้า · เสียเป้านานแล้วเลิกไล่
+// =====================================================================
+window.LOS9=function(x0,y0,x1,y1){try{const Zm=D&&D.zone;if(!Zm)return true;const dx=x1-x0,dy=y1-y0,d=Math.hypot(dx,dy);if(d<24)return true;const n=Math.ceil(d/14);
+  for(let i=1;i<n;i++){const x=x0+dx*i/n,y=y0+dy*i/n,tx=Math.floor(x/T),ty=Math.floor((y-4)/T);
+   if(!Zm.m[ty]||Zm.m[ty][tx]!==FL)return false;const o=Zm.oreAt[ty*ZW+tx];if(o&&o.alive)return false}return true}catch(e){return true}};
+{const _um=updMob;updMob=function(m,dt){
+  if(D&&D.zone&&m.aggro&&!m.dead){m.lt9=(m.lt9||0)+dt;if(m.lt9>.35){m.lt9=0;const d=Math.hypot(P.x-m.x,P.y-m.y);
+    if(LOS9(m.x,m.y-4,P.x,P.y-4))m.nlos9=0;else{m.nlos9=(m.nlos9||0)+.35;if(m.nlos9>6&&d>200&&!m.boss&&m.st!=='lunge'&&m.st!=='charge'){m.aggro=0;m.st='idle';m.nlos9=0}}}}
+  return _um(m,dt)}}
+// ---------- ข้อ 50/91: เล็งสกิลแม่นขึ้น — เมาส์ (เดสก์ท็อป) ชี้ทิศ + จับเป้าใกล้สุดในมุมกว้างขึ้น + ตัวละครหันตามทิศที่ยิง ----------
+window.MS9={x:0,y:0,t:-9e9};
+cv.addEventListener('pointermove',e=>{if(e.pointerType!=='mouse')return;const r=cv.getBoundingClientRect(),sx=(e.clientX-r.left)*(VW/r.width),sy=(e.clientY-r.top)*(VH/r.height),c=window.LASTCAM||[0,0];MS9.x=c[0]+sx/Z;MS9.y=c[1]+sy/Z;MS9.t=performance.now()});
+{const _ad=aimDir;aimDir=function(range){let dv=null;
+   if(performance.now()-MS9.t<4000){const dx=MS9.x-P.x,dy=MS9.y-(P.y-14),d=Math.hypot(dx,dy);if(d>10){dv=[dx/d,dy/d];
+     // ดูดเข้าหามอนที่อยู่ใกล้เส้นเล็ง (เมาส์ห่างมอนไม่เกิน 60px)
+     let bd=60,bt=null;for(const e of enemies()){const q=Math.hypot(e.x-MS9.x,(e.y-8)-MS9.y);if(q<bd&&Math.hypot(e.x-P.x,e.y-P.y)<=range+40){bd=q;bt=e}}
+     if(bt){const ex=bt.x-P.x,ey=(bt.y-8)-(P.y-14),ed=Math.hypot(ex,ey)||1;dv=[ex/ed,ey/ed]}}}
+   if(!dv){const v=DIRV[P.dir];let best=null,bs=-9;for(const e of enemies()){const dx=e.x-P.x,dy=(e.y-8)-(P.y-14),d=Math.hypot(dx,dy);if(d>range||d<1)continue;const c=(dx*v[0]+dy*v[1])/d;if(c>.15){const sc=c-d/range*.5;if(sc>bs){bs=sc;best=[dx/d,dy/d]}}}dv=best||v}
+   try{if(Math.abs(dv[0])>Math.abs(dv[1]))P.dir=dv[0]<0?'l':'r';else P.dir=dv[1]<0?'u':'d'}catch(e){}
+   return dv}}
+// ---------- ข้อ 97: ธนู/คทา ติดสถานะ CC ได้ (ธนู=ชะลอ · คทา=มึน) ----------
+{const _sh=shoot;shoot=function(kind,o){_sh(kind,o);try{const p=PROJ[PROJ.length-1];if(!p||p.cc9)return;p.cc9=1;const sk=!!(o&&o.dv&&!o.basic);
+    if(kind==='arrow'&&!p.slow&&Math.random()<(sk?.35:.2))p.slow=1.6;
+    else if(kind==='bolt'&&!p.stun&&Math.random()<(sk?.3:.14))p.stun=.55}catch(e){}}}
+// ---------- ข้อ 65/66: ลดข้อความสแปมตอนทำฟาร์ม ----------
+const FARMRX9=/รดน้ำ|ปลูก|เก็บเกี่ยว|ขุด|แปลง|ผลผลิต|เมล็ด|บัวรดน้ำ|ดินแล้ว|จอบ|เคียว/;
+{const _ss=sysSay;let last=0,lt='';sysSay=function(t){try{if(D&&D.home&&FARMRX9.test(t)&&!/ไม่พอ|เต็ม|หมด/.test(t)){const n=performance.now();if(t===lt&&n-last<4000)return;if(n-last<900&&!/เก็บเกี่ยวได้/.test(t))return;last=n;lt=t}}catch(e){}return _ss(t)}}
 
 // ---------- สรุป ----------
 {const sm=menuEl.querySelector('small');if(sm)sm.insertAdjacentHTML('beforeend',' · H/N ดื่มยา · B กินอาหาร')}
