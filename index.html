@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#1a1226"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><link rel="apple-touch-icon" href="icon-192.png"><meta name="eldoria-server" content="wss://eldoria-online.onrender.com">
-<title>ตำนานเอลโดเรีย v4.10</title>
+<title>ตำนานเอลโดเรีย v4.11</title>
 <style>
 :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#f3efe6;--fg:#2b2a26;--card:#fff;--bd:#cfc8b8}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1d1c19;--fg:#ece7da;--card:#2a2925;--bd:#4a4740}}
@@ -3214,7 +3214,7 @@ TOWN_SPAWN.x=7;TOWN_SPAWN.y=21.5;PAD.x=7*T;PAD.y=21.5*T-8;
 SD.gear.b=[3,10,6,6];SD.skill.b=[9,12,5,4];SD.store.b=[29,12,5,4];SD.inn.b=[35,10,6,6];SD.potion.b=[14,24,5,4];
 [[16,20],[18,20],[25,20],[27,20]].forEach(([x,y],i)=>{if(STALL_DATA[i]){STALL_DATA[i].x=x;STALL_DATA[i].y=y}});
 for(const c of CART_DATA)c.lane-=3;
-LAMP_DATA.length=0;LAMP_DATA.push([14,15],[34,15],[13,18],[29,18],[15,10],[28,10],[15,23],[28,23],[14,30],[20,30],[23,30],[34,30]);
+LAMP_DATA.length=0;LAMP_DATA.push([14,15],[34,15],[13,18],[29,18],[15,10],[28,10],[12,23],[31,23],[14,30],[20,30],[23,30],[34,30]);
 [[20.5,9.5],[23.5,9.5],[31,19.5],[38,18.5],[10,28.5],[24,22],[17,19.9],[19,19.9],[26,19.9],[28,19.9],[32,29],[18.5,11.5],[35,21.5],[6,17],[20,22],[10,30.5],[27,30.5]]
  .forEach(([x,y],i)=>{if(NPC_DATA[i]){NPC_DATA[i].x=x;NPC_DATA[i].y=y}});
 NPC_DATA.push({name:'นักบวชแห่งแสง',c:'#ece6f4',h:'#c9c4d6',x:9.5,y:22.6,fixed:1,g:'m',age:'elder',beard:1,
@@ -5128,7 +5128,7 @@ setTimeout(()=>{_ptx=null;applyBonus();recalcStats();P.hp=Math.min(P.hp,BAL.hp);
 
 // ---------------- 1) ดันเจี้ยนใหม่ ----------------
 const DGSZ=f=>f<=20?[70,52]:f<=50?[84,62]:[98,72];
-function genDungeon(zi){const Zd=ZONES[zi],f=Zd.dg,[W,H]=DGSZ(f);ZW=W;ZH=H;const R=srand(((Date.now()/1000)|0)*31+f*977),ri=(a,b)=>a+Math.floor(R()*(b-a+1));
+function genDungeon(zi){const Zd=ZONES[zi],f=Zd.dg,[W,H]=DGSZ(f);ZW=W;ZH=H;const R=srand(DGSEED8(f)*31+f*977),ri=(a,b)=>a+Math.floor(R()*(b-a+1));
  const m=[];for(let y=0;y<H;y++){m[y]=[];for(let x=0;x<W;x++)m[y][x]=WL}
  const inb=(x,y)=>x>1&&y>1&&x<W-2&&y<H-2,set=(x,y)=>{if(inb(x,y))m[y][x]=FL};
  const cw=17,ch=15,cols=Math.floor((W-4)/cw),rows=Math.floor((H-4)/ch),ox=Math.floor((W-cols*cw)/2),oy=Math.floor((H-rows*ch)/2),rooms=[];
@@ -9402,6 +9402,31 @@ window.NETV8=function(o,s){const now=performance.now();if(o.sn){const dt=(now-o.
  if(!s.mv){o.vx=0;o.vy=0}o.sn=now;o.sx=s.x;o.sy=s.y};
 window.NETSMOOTH8=function(o,dt){const age=Math.min(.22,(performance.now()-(o.sn||0))/1000),gx=o.tx+(o.vx||0)*age,gy=o.ty+(o.vy||0)*age,d=Math.hypot(gx-o.x,gy-o.y);
  if(d>260){o.x=gx;o.y=gy;return}const k=Math.min(1,dt*(d>40?14:9));o.x+=(gx-o.x)*k;o.y+=(gy-o.y)*k};
+
+// =====================================================================
+// fix2.js — ชุดแก้ #2 (v4.11)
+//  ข้อ 24 โคมไฟไม่บังป้ายร้าน (แก้ที่ LAMP_DATA ใน b46) · ข้อ 21 กระเป๋าร้านชำต่างสี/ขนาดตามระดับ · ข้อ 6,7 ดันเจี้ยนรอบเดียวกัน = แผนที่เดียวกัน
+// =====================================================================
+// ---------- ดันเจี้ยน: แผนที่ขึ้นกับ "รอบเวลา" 15 นาที ไม่ใช่วินาทีที่กดเข้า — เพื่อนเข้าในรอบเดียวกันได้แผนที่เดียวกัน ----------
+window.DGROUND8=()=>Math.floor(Date.now()/900000);
+window.DGSEED8=f=>DGROUND8()*7919+(f|0)*131;
+{const _ed2=enterDg;enterDg=function(f){_ed2(f);if(!D||!D.dg)return;const left=Math.max(1,Math.ceil((900000-Date.now()%900000)/60000)),rid=(DGROUND8()%9000+1000);
+  setTimeout(()=>{try{if(D&&D.dg===f)say('🗺️ แผนที่รอบ #'+rid+' — เพื่อนที่เข้าชั้นนี้ในรอบเดียวกันจะได้แผนที่เหมือนกัน (เปลี่ยนรอบในอีก ~'+left+' นาที)')}catch(e){}},2500)}}
+// ---------- เหมือง: ผังตายตัวต่อเหมืองอยู่แล้ว (seed คงที่) — ล้างแคชตอนเข้าใหม่ให้ได้ผังเดิมแน่นอนเสมอ ----------
+// ---------- ไอคอนกระเป๋าร้านชำ: ใบเล็ก=ผ้าใบน้ำตาล · กลาง=หนังเขียว · ใหญ่=ม่วงขอบทองและใหญ่กว่า ----------
+const BAGSTY8=[{id:'bagup1',body:'#c9a66b',dk:'#8a6a3a',flap:'#b08a4d',trim:'#6a4a22',s:.62},{id:'bagup2',body:'#4f8a4a',dk:'#2c5a2c',flap:'#3f7340',trim:'#d6c27a',s:.8},{id:'bagup3',body:'#6c3fb8',dk:'#43237a',flap:'#5a30a0',trim:'#ffd34a',s:1}];
+function bagIcon8(st){const c=document.createElement('canvas');c.width=c.height=64;const k=c.getContext('2d'),s=st.s,cx=32,by=58,w=40*s,h=44*s;
+ k.fillStyle='rgba(0,0,0,.25)';k.beginPath();k.ellipse(cx,by,w*.6,4,0,0,7);k.fill();
+ const rr=(x,y,ww,hh,r)=>{k.beginPath();k.moveTo(x+r,y);k.arcTo(x+ww,y,x+ww,y+hh,r);k.arcTo(x+ww,y+hh,x,y+hh,r);k.arcTo(x,y+hh,x,y,r);k.arcTo(x,y,x+ww,y,r);k.closePath()};
+ k.strokeStyle=st.dk;k.lineWidth=3;k.beginPath();k.arc(cx,by-h-1,w*.22,Math.PI,0);k.stroke();           // หูหิ้ว
+ k.fillStyle=st.body;rr(cx-w/2,by-h,w,h,8*s);k.fill();k.strokeStyle=st.dk;k.lineWidth=2;k.stroke();     // ตัวกระเป๋า
+ k.fillStyle=st.flap;rr(cx-w/2,by-h,w,h*.42,8*s);k.fill();k.stroke();                                    // ฝา
+ k.fillStyle=st.trim;k.fillRect(cx-3,by-h*.62,6,8*s+2);                                                   // หัวเข็มขัด
+ k.fillStyle=st.dk;rr(cx-w*.3,by-h*.3,w*.6,h*.22,3);k.fill();k.strokeStyle=st.trim;k.lineWidth=1.5;k.stroke(); // กระเป๋าหน้า
+ if(st.s>=1){k.fillStyle=st.trim;for(const dx of[-1,1]){k.beginPath();k.arc(cx+dx*w*.36,by-h*.82,2.4,0,7);k.fill()}}
+ return c}
+{const _mi2=matIcon;matIcon=function(key){const st=BAGSTY8.find(b=>b.id===key);if(st)return bagIcon8(st);return _mi2(key)}}
+{const d=Object.getOwnPropertyDescriptor(SD2.store,'buy'),g=d&&d.get;if(g)Object.defineProperty(SD2.store,'buy',{configurable:true,get(){return g.call(this).map(b=>/^bagup\d$/.test(b.id)?Object.assign({},b,{mat:b.id}):b)}})}
 
 // ---------- สรุป ----------
 {const sm=menuEl.querySelector('small');if(sm)sm.insertAdjacentHTML('beforeend',' · H/N ดื่มยา · B กินอาหาร')}
