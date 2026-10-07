@@ -69,6 +69,10 @@ async function handle(path_, d, ip) {
     if (!await dbSet(lid, rec)) return { err: 'store' };
     return { ok: true, rev: rec.rev, upd: rec.upd };
   }
+  if (path_ === '/api/friends') {
+    if (d.op === 'set') { const arr = Array.isArray(d.friends) ? d.friends : []; rec.friends = [...new Set(arr.map(x => clean(String(x), 14)).filter(Boolean))].slice(0, 200); if (!await dbSet(lid, rec)) return { err: 'store' }; }
+    return { ok: true, friends: rec.friends || [] };
+  }
   if (path_ === '/api/load') return { ok: true, name: rec.name, lv: rec.lv, rev: rec.rev, upd: rec.upd, save: rec.save || '' };
   if (path_ === '/api/pw') {
     const h = await hashPw(d.old || '', rec.salt); if (!crypto.timingSafeEqual(Buffer.from(h), Buffer.from(rec.hash))) return { err: 'badpw' };
