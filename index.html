@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#1a1226"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><link rel="apple-touch-icon" href="icon-192.png"><meta name="eldoria-server" content="wss://eldoria-online.onrender.com">
-<title>ตำนานเอลโดเรีย v4.11</title>
+<title>ตำนานเอลโดเรีย v4.12</title>
 <style>
 :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#f3efe6;--fg:#2b2a26;--card:#fff;--bd:#cfc8b8}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1d1c19;--fg:#ece7da;--card:#2a2925;--bd:#4a4740}}
@@ -2379,7 +2379,7 @@ function _noCheat(n){inv.coin+=n;refreshInv();sfx('coin');say('🧪 เสกเ
 const QS={slots:TESTKIT?['weapon','axe0','pick0',null]:[null,null,null,null],cur:null,pick:null,lp:null};
 const QCONS=['hpp','mpp','bread','apple','scroll'];
 const qIcon=id=>!id?'':id==='weapon'?(P.armor.sword?iconURL('item:'+P.armor.sword):''):ITEMS[id]?iconURL('item:'+id):iconURL('mat:'+id);
-const qName=id=>id==='weapon'?'ดาบที่สวมอยู่':ITEMS[id]?ITEMS[id].name:MN(id);
+const qName=id=>id==='weapon'?(window.wName9?wName9():'ดาบที่สวมอยู่'):ITEMS[id]?ITEMS[id].name:MN(id);
 const barQ=gid('bar');barQ.innerHTML='';
 for(let i=0;i<4;i++){const d=document.createElement('div');d.className='ts q';d.id='q'+i;d.style.touchAction='manipulation';d.innerHTML='<img alt=""><b>'+(i+1)+'</b><em></em>';
  d.onpointerdown=e=>{e.preventDefault();clearTimeout(QS.lp);QS.lp=setTimeout(()=>{QS.lp=null;openQPick(i)},550)};
@@ -2400,7 +2400,7 @@ function autoDraw(){if(!P.draw){P.tool='sword';P.draw=true;QS.cur='weapon'}}
 function stowToggle(){if(P.draw)stowItem();else{const id=QS.last||'weapon';quickUseId(id)}}
 function quickUse(i){if(PAUSED||DOORA.k)return;const id=QS.slots[i];if(!id||!bagEl.hidden){openQPick(i);return}quickUseId(id)}
 function quickUseId(id){
- if(id==='weapon'){if(!P.armor.sword){say('ยังไม่มีดาบสวมอยู่ — ไปซื้อหรือคราฟก่อน');return}if(qActive('weapon')){stowItem();return}P.tool='sword';QS.last=id;drawItem('weapon','⚔️ ชักดาบออกมา — กดอีกครั้งเพื่อเก็บ');return}
+ if(id==='weapon'){if(!P.armor.sword){say('ยังไม่มีอาวุธสวมอยู่ — ไปซื้อหรือคราฟก่อน');return}if(qActive('weapon')){stowItem();return}P.tool='sword';QS.last=id;drawItem('weapon','⚔️ ชัก'+(window.wName9?wName9():'ดาบ')+'ออกมา — กดอีกครั้งเพื่อเก็บ');return}
  const it=ITEMS[id];
  if(it){
   if(it.kind==='sword'){if(GEAR[id]>0)equipItem(id);else if(P.armor.sword!==id){QS.slots[QS.slots.indexOf(id)]=null;say('ไม่มี'+it.name+'แล้ว');return}
@@ -2412,7 +2412,7 @@ function quickUseId(id){
  if(QCONS.includes(id)){useItem(id);return}}
 // ---------- เลือกของใส่ช่องลัด ----------
 const qp=document.createElement('div');qp.id='qpick';qp.hidden=true;gid('wrap').appendChild(qp);
-function qCands(){const L=P.armor.sword?[{id:'weapon',name:'ดาบที่สวมอยู่ (เก็บไว้หลัง)'}]:[];
+function qCands(){const L=P.armor.sword?[{id:'weapon',name:(window.wName9?wName9():'ดาบ')+' ที่สวมอยู่ (เก็บไว้หลัง)'}]:[];
  for(const id of Object.keys(GEAR).sort())if(GEAR[id]>0&&(ITEMS[id].kind==='axe'||ITEMS[id].kind==='pick'||ITEMS[id].kind==='sword'))L.push({id,name:ITEMS[id].name});
  for(const k of QCONS)if(inv[k]>0)L.push({id:k,name:MN(k),n:inv[k]});return L}
 function openQPick(i){clearTimeout(QS.lp);QS.pick=i;qp.hidden=false;renderQPick();sfx('ui')}
@@ -9427,6 +9427,37 @@ function bagIcon8(st){const c=document.createElement('canvas');c.width=c.height=
  return c}
 {const _mi2=matIcon;matIcon=function(key){const st=BAGSTY8.find(b=>b.id===key);if(st)return bagIcon8(st);return _mi2(key)}}
 {const d=Object.getOwnPropertyDescriptor(SD2.store,'buy'),g=d&&d.get;if(g)Object.defineProperty(SD2.store,'buy',{configurable:true,get(){return g.call(this).map(b=>/^bagup\d$/.test(b.id)?Object.assign({},b,{mat:b.id}):b)}})}
+
+// =====================================================================
+// fix3.js — ชุดแก้ #3 (v4.12)
+//  เปลี่ยนอาชีพ: ล้างสถานะสกิล/อัลติ/ท่าโจมตี · เก็บอาวุธผิดสาย + สวมอาวุธสายใหม่ให้เอง · ช่องลัดเรียกชื่อ "อาวุธ" ตามสาย
+//  ทิ้งของจากการ์ดไอเท็ม (แตะ 2 ครั้งยืนยัน)
+// =====================================================================
+window.wName9=()=>{const id=P.armor&&P.armor.sword,it=id&&ITEMS[id];return it?it.name:({staff:'คทา',bow:'ธนู'}[NEEDW[P.cls]]||'ดาบ')};
+// ---------- เปลี่ยนอาชีพ ----------
+{const _pc=pickClass;pickClass=function(k){const before=P.cls;_pc(k);if(P.cls===before||P.cls!==k)return;
+  try{P.draw=false;QS.cur=null;P.cast=0;P.at=0;P.cmb=0;CS.step=0;CS.cd=[0,0,0];CS.win=0;
+   try{ULT.cast=null;ULT.fx.length=0}catch(e){}
+   try{if(P.cls!=='none'&&typeof ZPROJ!=='undefined')ZPROJ.length=0}catch(e){}
+   const need=NEEDW[k];let note='';
+   const cur=P.armor.sword,ci=cur&&ITEMS[cur];
+   if(ci&&ci.kind!==need){unequip('sword');note='เก็บ'+ci.name+'เข้ากระเป๋าแล้ว'}
+   if(!P.armor.sword&&need){const c=Object.keys(GEAR).filter(id=>GEAR[id]>0&&ITEMS[id]&&ITEMS[id].kind===need).sort((a,b)=>ITEMS[b].tier-ITEMS[a].tier)[0];
+    if(c){equipItem(c);note+=(note?' · ':'')+'สวม'+ITEMS[c].name+'ให้แล้ว'}
+    else note+=(note?' · ':'')+'ยังไม่มี'+WNAME[need]+' — ซื้อ/คราฟได้ที่ร้านอุปกรณ์'}
+   for(let i=0;i<QS.slots.length;i++){const s=QS.slots[i];if(s&&ITEMS[s]&&ITEMS[s].kind==='sword'&&need!=='sword')QS.slots[i]=null}
+   if(P.armor.sword&&!QS.slots.includes('weapon')){const j=QS.slots.indexOf(null);if(j>=0)QS.slots[j]='weapon'}
+   recalcStats();P.hp=Math.min(P.hp,BAL.hp);P.mp=Math.min(P.mp,BAL.mp||P.mp);try{refreshInv();updQuick()}catch(e){}
+   if(note)say('🎓 '+note)}catch(e){console.warn('[v412] class',e)}}}
+// ---------- ทิ้งไอเท็ม ----------
+window.DROP9=function(t,k,all,sure){const n=t==='gear'?(GEAR[k]|0):(inv[k]|0);if(n<=0||k==='coin'){icClose();return}
+  if(!sure){const b=document.getElementById(all?'drpA9':'drp19');if(b){b.textContent='⚠️ แตะอีกครั้งเพื่อยืนยัน';b.setAttribute('onclick',"DROP9('"+t+"','"+k+"',"+(all?1:0)+",1)");b.style.background='#7a1a1a'}return}
+  const q=all?n:1;let nm;if(t==='gear'){nm=ITEMS[k].name;GEAR[k]-=q;if(GEAR[k]<=0)delete GEAR[k];try{updQuick()}catch(e){}}else{nm=MN(k);inv[k]-=q}
+  sfx('thud');say('🗑️ ทิ้ง'+nm+(q>1?' ×'+q:'')+' แล้ว');icClose();try{refreshInv()}catch(e){}try{renderBag()}catch(e){}};
+{const _ic=icShow;icShow=function(t,k,ro,at){_ic(t,k,ro,at);try{if(ro||icEl.hidden||!k||k==='coin'||icEl.querySelector('.drp9'))return;
+  const n=t==='gear'?(GEAR[k]|0):(inv[k]|0);if(n<=0)return;
+  let box=icEl.querySelector('.ib');if(!box){box=document.createElement('div');box.className='ib';icEl.appendChild(box)}
+  box.insertAdjacentHTML('beforeend','<button class="drp9 no" id="drp19" onclick="DROP9(\''+t+'\',\''+k+'\',0)">🗑️ ทิ้ง'+(n>1?' 1 ชิ้น':'')+'</button>'+(n>1?'<button class="drp9 no" id="drpA9" onclick="DROP9(\''+t+'\',\''+k+'\',1)">🗑️ ทิ้งทั้งหมด ×'+n+'</button>':''))}catch(e){}}}
 
 // ---------- สรุป ----------
 {const sm=menuEl.querySelector('small');if(sm)sm.insertAdjacentHTML('beforeend',' · H/N ดื่มยา · B กินอาหาร')}
