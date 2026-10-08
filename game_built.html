@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#1a1226"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><link rel="apple-touch-icon" href="icon-192.png"><meta name="eldoria-server" content="wss://eldoria-online.onrender.com">
-<title>ตำนานเอลโดเรีย v4.38</title>
+<title>ตำนานเอลโดเรีย v4.39</title>
 <style>
 :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#f3efe6;--fg:#2b2a26;--card:#fff;--bd:#cfc8b8}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1d1c19;--fg:#ece7da;--card:#2a2925;--bd:#4a4740}}
@@ -12364,6 +12364,18 @@ function instBtn35(){if(standalone35())return;const pan=gid('tpan');if(!pan||pan
 {const _tm=tMain;tMain=function(){_tm();try{instBtn35()}catch(e){}}}
 // เมนูในเกม
 try{gid('resume').insertAdjacentHTML('beforebegin','<button class="mini" onclick="instGo35()">📲 ติดตั้งเกมลงเครื่อง</button>')}catch(e){}
+
+// =====================================================================
+// fix36.js (v4.39) — แก้: เมนูดันเจี้ยนจากรูปปั้นในกิลด์ (หอโถง) เปิดแล้วปิดเองทันที
+//  สาเหตุ: ตัวตรวจระยะเก่าปิดเมนูทุก 0.3 วิ ถ้าไม่ได้ยืนหน้าประตูถ้ำในทุ่ง (แต่ในกิลด์ไม่มีประตูถ้ำ)
+// =====================================================================
+const nearHall36=()=>!!(D&&D.shop==='hall'&&typeof DGST11!=='undefined'&&Math.hypot(P.x-DGST11.x,P.y-DGST11.y)<90);
+{const _om=openDgMenu;openDgMenu=function(){const r=_om.apply(this,arguments);if(nearHall36()){ZM.open=false;ZM.hall36=true}return r}}
+{const _cz=closeZMenu;closeZMenu=function(){ZM.hall36=false;return _cz.apply(this,arguments)}}
+{const _sa=shopAct;shopAct=function(){if(nearHall36()&&ZM.hall36&&!shopEl.hidden&&!P.sit){closeZMenu();return true}return _sa()}}
+setInterval(()=>{try{if(ZM.hall36&&!shopEl.hidden&&!nearHall36())closeZMenu()}catch(e){}},300);
+// ตัวอัปเดตร้าน (ปิดหน้าต่างถ้าไม่ได้ยืนใกล้คนขายในอาคาร) — ยกเว้นตอนเปิดเมนูดันเจี้ยนที่รูปปั้น
+{const _us=updShop;updShop=function(dt){if(ZM.hall36&&!shopEl.hidden&&nearHall36()){const sv=STN.open;STN.open=sv||'hall36';try{return _us(dt)}finally{STN.open=sv}}return _us(dt)}}
 
 // fixz.js — ท้ายสุด: คืนไอเท็มที่ถูกพักไว้ตอนโหลด (ไอเท็มที่สร้างในสคริปต์ท้าย ๆ เช่น Lv.105+ / อาวุธประจำอาชีพ)
 try{const Q=window.__PEND8;if(Q){window.__PEND8=null;let ch=0;for(const k in Q.a)if(ITEMS[Q.a[k]]){P.armor[k]=Q.a[k];ch=1}for(const id in Q.g)if(ITEMS[id]){GEAR[id]=Q.g[id];ch=1}
