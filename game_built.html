@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#1a1226"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><link rel="apple-touch-icon" href="icon-192.png"><meta name="eldoria-server" content="wss://eldoria-online.onrender.com">
-<title>ตำนานเอลโดเรีย v4.29</title>
+<title>ตำนานเอลโดเรีย v4.30</title>
 <style>
 :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#f3efe6;--fg:#2b2a26;--card:#fff;--bd:#cfc8b8}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1d1c19;--fg:#ece7da;--card:#2a2925;--bd:#4a4740}}
@@ -11143,6 +11143,13 @@ setTimeout(()=>{if(gOnline21())gLoad21()},6000);
 // บอทกิลด์: ปิดเมื่อเล่นออนไลน์ (แชทกิลด์เป็นของผู้เล่นจริง)
 {const _cs=chatSay;chatSay=function(ch,who,txt,col){try{if(ch==='guild'&&NET.on&&GUILD.mem.some(m=>m[0]===who))return}catch(e){}return _cs(ch,who,txt,col)}}
 {const _gr=guildReply;guildReply=function(t){try{if(NET.on)return}catch(e){}return _gr(t)}}
+
+// =====================================================================
+// fix22.js (v4.30) — แก้บัค: เมนูหลักยาวเกินจอแนวนอน กด "ตั้งค่า"/ปุ่มแถวล่างไม่ได้ → เลื่อนได้ + จัดเป็น 8 คอลัมน์บนจอเตี้ย
+// =====================================================================
+{const st=document.createElement('style');st.textContent='#pm7{max-height:calc(100dvh - 72px - var(--st,0px));max-height:calc(100vh - 72px - var(--st,0px));overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y}'
+ +'@media (max-height:520px){#pm7{grid-template-columns:repeat(8,52px)!important;gap:5px;padding:6px;top:calc(56px + var(--st,0px))}#pm7 button{width:52px!important;height:50px!important;font-size:18px!important}#pm7 button small{font-size:9px}}'
+ +'@media (max-height:330px){#pm7{grid-template-columns:repeat(11,48px)!important}#pm7 button{width:48px!important;height:46px!important;font-size:16px!important}}';document.head.appendChild(st)}
 
 // ---------- สรุป ----------
 {const sm=menuEl.querySelector('small');if(sm)sm.insertAdjacentHTML('beforeend',' · H/N ดื่มยา · B กินอาหาร')}
