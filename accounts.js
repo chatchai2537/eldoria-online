@@ -36,10 +36,25 @@ const ipHits = new Map();
 const ipOk = ip => { const now = Date.now(), a = (ipHits.get(ip) || []).filter(t => now - t < 60000); a.push(now); ipHits.set(ip, a); if (ipHits.size > 5000) ipHits.clear(); return a.length <= 40; };
 async function authToken(rec, token) { if (!rec || !token) return false; const h = sha(token), now = Date.now(); return (rec.tokens || []).some(t => t.h === h && t.exp > now); }
 function newToken(rec) { const t = crypto.randomBytes(24).toString('hex'); rec.tokens = (rec.tokens || []).filter(x => x.exp > Date.now()).slice(-7); rec.tokens.push({ h: sha(t), exp: Date.now() + 90 * 864e5 }); return t; }
+// ---------- ตารางอันดับ (เก็บรวมเป็นเอกสารเดียว: Upstash key eld:lb หรือไฟล์ data/lb.json) ----------
+const LB = { map: {}, dirty: false, loaded: null };
+function lbLoad() { if (LB.loaded) return LB.loaded; LB.loaded = (async () => { try {
+  if (UP_URL) { const r = await fetch(UP_URL + '/get/eld:lb', { headers: { authorization: 'Bearer ' + UP_TOK } }); const j = await r.json(); if (j && j.result) LB.map = JSON.parse(j.result) || {}; }
+  else { const f = path.join(DATA_DIR, 'lb.json'); if (fs.existsSync(f)) LB.map = JSON.parse(fs.readFileSync(f, 'utf8')) || {}; }
+} catch (e) { console.log('lbLoad', e.message); } })(); return LB.loaded; }
+async function lbFlush() { if (!LB.dirty) return; LB.dirty = false; const body = JSON.stringify(LB.map); try {
+  if (UP_URL) await fetch(UP_URL + '/set/eld:lb', { method: 'POST', headers: { authorization: 'Bearer ' + UP_TOK }, body });
+  else { const f = path.join(DATA_DIR, 'lb.json'), t = f + '.tmp'; fs.writeFileSync(t, body); fs.renameSync(t, f); }
+} catch (e) { console.log('lbFlush', e.message); LB.dirty = true; } }
+{ const iv = setInterval(lbFlush, 30000); if (iv.unref) iv.unref(); }
+const lbN = (v, mx) => Math.max(0, Math.min(mx, Math.floor(+v || 0)));
+function lbTop() { const arr = Object.values(LB.map); const top = k => arr.filter(x => x[k] > 0).sort((a, b) => b[k] - a[k] || b.lv - a.lv).slice(0, 20).map(x => ({ n: x.n, v: x[k], lv: x.lv, cls: x.cls, t: x.t }));
+  return { ok: true, lv: top('lv'), k: top('k'), b: top('b'), w: top('w'), fl: top('fl'), n: arr.length }; }
 const lockTbl = new Map();
 async function handle(path_, d, ip) {
   if (path_ === '/api/ping') return { ok: true, t: Date.now(), store: UP_URL ? 'upstash' : 'file' };
   if (!ipOk(ip)) return { err: 'rate' };
+  if (path_ === '/api/top') { await lbLoad(); return lbTop(); }
   const id = clean(d.id, 16), lid = id.toLowerCase();
   if (!ID_RE.test(id)) return { err: 'badid' };
   if (path_ === '/api/register') {
@@ -66,6 +81,8 @@ async function handle(path_, d, ip) {
     if (rec.save && rec.save !== save) rec.bak = rec.save;
     rec.save = save; rec.rev++; rec.upd = Date.now(); rec.lv = Math.max(0, Math.min(999, d.lv | 0)); rec.cls = clean(d.cls, 10); rec.name = clean(d.name, 14) || rec.name;
     if (d.stat && typeof d.stat === 'object') rec.stat = { floor: d.stat.floor | 0, mine: d.stat.mine | 0, kills: d.stat.kills | 0 };
+    try { await lbLoad(); const S = rec.stat || {}, X = d.stat || {}; LB.map[lid] = { n: rec.name, lv: rec.lv, cls: rec.cls, fl: lbN(S.floor, 999), k: lbN(S.kills, 1e8), b: lbN(X.boss, 1e7), w: lbN(X.w, 1e12), t: clean(X.t, 16), u: Date.now() };
+      const ks = Object.keys(LB.map); if (ks.length > 5000) { ks.sort((p, q) => LB.map[p].u - LB.map[q].u); for (const k of ks.slice(0, ks.length - 5000)) delete LB.map[k]; } LB.dirty = true; } catch (e) {}
     if (!await dbSet(lid, rec)) return { err: 'store' };
     return { ok: true, rev: rec.rev, upd: rec.upd };
   }

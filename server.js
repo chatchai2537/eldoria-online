@@ -47,7 +47,7 @@ function sanitizeState(d) {
   const tier = {}; if (d.tier && typeof d.tier === 'object') for (const k of ['sword','axe','pick']) tier[k] = num(d.tier[k], 0, 9) | 0;
   const lk = d.look && typeof d.look === 'object' ? { g: d.look.g === 'f' ? 'f' : 'm', top: hex(d.look.top), pants: hex(d.look.pants), hair: hex(d.look.hair) } : null;
   return { x: num(d.x, -1e4, 1e5), y: num(d.y, -1e4, 1e5), dir: DIRS.has(d.dir) ? d.dir : 'd', mv: !!d.mv, run: !!d.run, at: num(d.at, -1, 1), cmb: num(d.cmb, 0, 2) | 0,
-    tool: TOOLS.has(d.tool) ? d.tool : 'sword', draw: !!d.draw, armor, tier, lv: num(d.lv, 1, 99) | 0, dead: !!d.dead, cls: clean(d.cls, 10), pvp: !!d.pvp, look: lk, mount: clean(d.mount, 10), fx: sanitizeFx(d.fx), stl: d.stl && d.stl.ti ? { ti: clean(d.stl.ti, 24), n: num(d.stl.n, 0, 12) | 0 } : null };
+    tool: TOOLS.has(d.tool) ? d.tool : 'sword', draw: !!d.draw, armor, tier, lv: num(d.lv, 1, 999) | 0, dead: !!d.dead, cls: clean(d.cls, 10), pvp: !!d.pvp, look: lk, mount: clean(d.mount, 10), fx: sanitizeFx(d.fx), stl: d.stl && d.stl.ti ? { ti: clean(d.stl.ti, 24), n: num(d.stl.n, 0, 12) | 0 } : null, ttl: clean(d.ttl, 16) };
 }
 const findByName = n => { n = String(n || '').toLowerCase(); for (const p of players.values()) if (p.joined && p.name.toLowerCase() === n) return p; for (const p of players.values()) if (p.joined && p.name.toLowerCase().startsWith(n)) return p; return null; };
 wss.on('connection', (ws, req) => {
@@ -83,7 +83,7 @@ wss.on('connection', (ws, req) => {
       if (!to || to === p) { send(p, { t: 'sys', txt: 'ไม่พบผู้เล่นชื่อ "' + clean(d.to, 14) + '" ที่ออนไลน์อยู่' }); return; }
       send(to, { t: 'whisper', from: p.name, txt }); send(p, { t: 'whisper_ok', to: to.name, txt });
     } else if (d.t === 'who') {
-      const list = [...players.values()].filter(o => o.joined).map(o => ({ name: o.name, lv: o.st ? o.st.lv : 1, sc: o.sc || '', cls: o.st ? o.st.cls : '', pvp: !!(o.st && o.st.pvp) }));
+      const list = [...players.values()].filter(o => o.joined).map(o => ({ name: o.name, lv: o.st ? o.st.lv : 1, sc: o.sc || '', cls: o.st ? o.st.cls : '', pvp: !!(o.st && o.st.pvp), ttl: o.st ? o.st.ttl : '' }));
       send(p, { t: 'who', list });
     } else if (d.t === 'pvp') {
       // ตรวจ PvP ฝั่งเซิร์ฟเวอร์: ฉากเดียวกัน · ไม่ใช่ในเมือง · (สนามประลอง หรือ เปิด PvP ทั้งคู่) · ระยะ · เพดานดาเมจ · ความถี่
