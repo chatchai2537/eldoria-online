@@ -19,6 +19,8 @@ const originOk = (o, host) => { if (!o || o === 'null' || o === 'file://') retur
 const server = http.createServer((req, res) => {
   if (ACC.middleware(req, res, o => originOk(o, req.headers.host || ''))) return;
   const u = (req.url || '/').split('?')[0], f = STATIC[u];
+  if ((u === '/' || u === '/index.html') && !process.env.SERVE_LOCAL) { res.writeHead(302, { location: GAME_URL, 'cache-control': 'no-store' }); res.end(); return; }
+  if (u === '/sw.js' && !process.env.SERVE_LOCAL) { res.writeHead(200, { 'content-type': 'text/javascript; charset=utf-8', 'cache-control': 'no-cache' }); res.end("self.addEventListener('install',()=>self.skipWaiting());self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(ks=>Promise.all(ks.map(k=>caches.delete(k)))).then(()=>self.registration.unregister()).then(()=>self.clients.matchAll()).then(cs=>cs.forEach(c=>{try{c.navigate(c.url)}catch(_){}}))));"); return; }
   if (f && fs.existsSync(path.join(__dirname, f[0]))) { res.writeHead(200, { 'content-type': f[1], 'x-content-type-options': 'nosniff', 'cache-control': u === '/sw.js' ? 'no-cache' : 'public, max-age=300' }); fs.createReadStream(path.join(__dirname, f[0])).pipe(res); return; }
   res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8', 'access-control-allow-origin': '*' }); res.end('Eldoria online server OK — players: ' + players.size);
 });
@@ -76,6 +78,7 @@ wss.on('connection', (ws, req) => {
       if (now - p.chatT < 700) return; p.chatT = now;
       const txt = filt(clean(d.txt, 140)); if (!txt) return;
       const ch = d.ch === 'guild' ? 'guild' : 'gen', msg = { t: 'chat', id, name: p.name, ch, txt, ts: now };
+      if (ch === 'guild') { if (!p.gid) { send(p, { t: 'sys', txt: 'คุณยังไม่มีกิลด์ — สร้างหรือเข้าร่วมได้ที่กิลด์นักผจญภัยในเมือง' }); return; } msg.gtag = p.gtag; for (const o of players.values()) if (o !== p && o.gid === p.gid) send(o, msg); return; }
       history.push(msg); if (history.length > HIST_MAX) history.shift(); broadcast(msg, p);
     } else if (d.t === 'whisper') {
       if (now - p.chatT < 500) return; p.chatT = now;
@@ -103,7 +106,10 @@ wss.on('connection', (ws, req) => {
 });
 setInterval(() => { const byScene = new Map(); for (const p of players.values()) if (p.st) { if (!byScene.has(p.sc)) byScene.set(p.sc, []); byScene.get(p.sc).push(p); }
   const n = [...players.values()].filter(p => p.joined).length;
-  for (const p of players.values()) { const list = (byScene.get(p.sc) || []).filter(o => o !== p).map(o => Object.assign({ id: o.id, name: o.name }, o.st)); send(p, { t: 'snap', on: n, ps: list }); } }, TICK_MS);
+  for (const p of players.values()) { const list = (byScene.get(p.sc) || []).filter(o => o !== p).map(o => Object.assign({ id: o.id, name: o.name, gtag: o.gtag || '' }, o.st)); send(p, { t: 'snap', on: n, ps: list }); } }, TICK_MS);
 setInterval(() => { for (const p of players.values()) { if (!p.alive) { p.ws.terminate(); continue; } p.alive = false; try { p.ws.ping(); } catch (e) {} } }, 15000);
 WORLD.init({ players, send, broadcast, ACC, clean, num });
+ACC.setGuildHook((lid, g) => { for (const p of players.values()) if (p.acct === lid) { p.gid = g ? g.id : ''; p.gtag = g ? g.tag : ''; p.gname = g ? g.name : ''; send(p, { t: 'gupd', g }); } });
+// เปิดหน้าเกมที่ Render → ส่งไปเวอร์ชันล่าสุดบน GitHub Pages (ไม่ต้อง Deploy Render ทุกครั้งที่อัปเดตเกม)
+const GAME_URL = process.env.GAME_URL || 'https://chatchai2537.github.io/eldoria-online/';
 server.listen(PORT, () => console.log('Eldoria server v2 on :' + PORT));

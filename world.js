@@ -50,7 +50,7 @@ function init(h) { H = h;
 function onMsg(p, d, now) {
   const { send, clean, num, ACC } = H;
   switch (d.t) {
-    case 'auth': ACC.verify(d.id, d.token).then(async v => { if (!v) { send(p, { t: 'auth_no' }); return; } p.acct = v.lid; p.gm = v.gm; send(p, { t: 'auth_ok', gm: v.gm });
+    case 'auth': ACC.verify(d.id, d.token).then(async v => { if (!v) { send(p, { t: 'auth_no' }); return; } p.acct = v.lid; p.gm = v.gm; try { const g = await ACC.guildOf(v.lid); p.gid = g ? g.id : ''; p.gtag = g ? g.tag : ''; p.gname = g ? g.name : ''; } catch (e) {} send(p, { t: 'auth_ok', gm: v.gm, g: p.gid ? { id: p.gid, tag: p.gtag, name: p.gname } : null });
         const m = await ACC.mailTake(v.lid); if (m.length) send(p, { t: 'mail', list: m }); }).catch(() => {}); return true;
     case 'wbq': send(p, wbState()); return true;
     case 'wbhit': { if (!S.wb.on || p.sc !== 'wboss' || !p.st || p.st.dead) return true;

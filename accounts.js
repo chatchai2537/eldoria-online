@@ -50,6 +50,66 @@ async function lbFlush() { if (!LB.dirty) return; LB.dirty = false; const body =
 const lbN = (v, mx) => Math.max(0, Math.min(mx, Math.floor(+v || 0)));
 function lbTop() { const arr = Object.values(LB.map); const top = k => arr.filter(x => x[k] > 0).sort((a, b) => b[k] - a[k] || b.lv - a.lv).slice(0, 20).map(x => ({ n: x.n, v: x[k], lv: x.lv, cls: x.cls, t: x.t }));
   return { ok: true, lv: top('lv'), k: top('k'), b: top('b'), w: top('w'), fl: top('fl'), n: arr.length }; }
+
+// ---------- กิลด์ผู้เล่น (เอกสารเดียว: Upstash key eld:guilds หรือไฟล์ data/guilds.json) ----------
+const GD = { map: {}, idx: {}, dirty: false, loaded: null, hook: null };
+const GMAX = 30, GROLE = { leader: 3, officer: 2, member: 1 };
+function gIndex() { GD.idx = {}; for (const g of Object.values(GD.map)) for (const l in g.members) GD.idx[l] = g.id; }
+function gLoad() { if (GD.loaded) return GD.loaded; GD.loaded = (async () => { try {
+  if (UP_URL) { const r = await fetch(UP_URL + '/get/eld:guilds', { headers: { authorization: 'Bearer ' + UP_TOK } }); const j = await r.json(); if (j && j.result) GD.map = JSON.parse(j.result) || {}; }
+  else { const f = path.join(DATA_DIR, 'guilds.json'); if (fs.existsSync(f)) GD.map = JSON.parse(fs.readFileSync(f, 'utf8')) || {}; }
+} catch (e) { console.log('gLoad', e.message); } gIndex(); })(); return GD.loaded; }
+async function gFlush() { if (!GD.dirty) return; GD.dirty = false; const body = JSON.stringify(GD.map); try {
+  if (UP_URL) await fetch(UP_URL + '/set/eld:guilds', { method: 'POST', headers: { authorization: 'Bearer ' + UP_TOK }, body });
+  else { const f = path.join(DATA_DIR, 'guilds.json'), t = f + '.tmp'; fs.writeFileSync(t, body); fs.renameSync(t, f); }
+} catch (e) { console.log('gFlush', e.message); GD.dirty = true; } }
+{ const iv = setInterval(gFlush, 15000); if (iv.unref) iv.unref(); }
+const gTouch = () => { GD.dirty = true; gIndex(); setTimeout(gFlush, 1500); };
+const mid = lid => fkey('m:' + lid).slice(0, 12);
+const gNotify = (lid, g) => { try { if (GD.hook) GD.hook(lid, g ? { id: g.id, tag: g.tag, name: g.name } : null); } catch (e) {} };
+function gPub(g, me) { const r = GROLE[(g.members[me] || {}).role] || 0;
+  const members = Object.entries(g.members).map(([l, m]) => ({ id: mid(l), n: m.n, lv: m.lv, role: m.role, j: m.j, s: m.s, me: l === me })).sort((x, y) => (GROLE[y.role] - GROLE[x.role]) || (y.lv - x.lv));
+  const apps = r >= 2 ? Object.entries(g.apps || {}).map(([l, a]) => ({ id: mid(l), n: a.n, lv: a.lv, t: a.t })) : [];
+  return { id: g.id, name: g.name, tag: g.tag, notice: g.notice || '', open: !!g.open, created: g.created, members, apps, max: GMAX, role: (g.members[me] || {}).role || '' }; }
+const byMid = (obj, id) => Object.keys(obj || {}).find(l => mid(l) === id);
+function guildOfSync(lid) { const g = GD.map[GD.idx[lid]]; return g ? { id: g.id, tag: g.tag, name: g.name } : null; }
+async function guildOf(lid) { await gLoad(); return guildOfSync(lid); }
+function gTouchMember(lid, name, lv) { const g = GD.map[GD.idx[lid]]; if (!g) return; const m = g.members[lid]; if (!m) return; m.n = name || m.n; m.lv = lv | 0; m.s = Date.now(); GD.dirty = true; }
+async function guildOp(lid, rec, d) {
+  await gLoad(); const op = String(d.op || ''), myG = GD.map[GD.idx[lid]], me = myG ? myG.members[lid] : null, myR = me ? GROLE[me.role] : 0;
+  if (op === 'my') { if (myG && me) { me.s = Date.now(); me.n = rec.name || me.n; me.lv = rec.lv | 0; } return { ok: true, g: myG ? gPub(myG, lid) : null, pend: Object.values(GD.map).filter(g => g.apps && g.apps[lid]).map(g => g.id) }; }
+  if (op === 'list') { const q = clean(d.q, 16).toLowerCase(); const L = Object.values(GD.map).filter(g => !q || g.name.toLowerCase().includes(q) || g.tag.toLowerCase().includes(q))
+      .map(g => ({ id: g.id, name: g.name, tag: g.tag, n: Object.keys(g.members).length, lv: Math.round(Object.values(g.members).reduce((s, m) => s + (m.lv | 0), 0) / Math.max(1, Object.keys(g.members).length)), open: !!g.open, notice: (g.notice || '').slice(0, 60), lead: (g.members[g.leader] || {}).n || '', app: !!(g.apps && g.apps[lid]) }))
+      .sort((x, y) => y.n - x.n || y.lv - x.lv).slice(0, 40); return { ok: true, list: L }; }
+  if (op === 'create') { if (myG) return { err: 'inguild' }; const name = clean(d.name, 16), tag = clean(d.tag, 4).toUpperCase();
+    if (!/^[A-Za-z0-9ก-๙ _]{3,16}$/.test(name) || !/^[A-Z0-9ก-๙]{2,4}$/.test(tag)) return { err: 'badname' };
+    if (Object.values(GD.map).some(g => g.name.toLowerCase() === name.toLowerCase() || g.tag === tag)) return { err: 'taken' };
+    const id = crypto.randomBytes(5).toString('hex'); const g = { id, name, tag, leader: lid, members: { [lid]: { n: rec.name || rec.id, lv: rec.lv | 0, role: 'leader', j: Date.now(), s: Date.now() } }, apps: {}, notice: 'ยินดีต้อนรับสู่กิลด์ ' + name + '!', open: true, created: Date.now() };
+    for (const o of Object.values(GD.map)) if (o.apps) delete o.apps[lid];
+    GD.map[id] = g; gTouch(); gNotify(lid, g); return { ok: true, g: gPub(g, lid) }; }
+  if (op === 'join') { if (myG) return { err: 'inguild' }; const g = GD.map[clean(d.gid, 12)]; if (!g) return { err: 'nog' };
+    if (Object.keys(g.members).length >= GMAX) return { err: 'full' };
+    if (g.open) { for (const o of Object.values(GD.map)) if (o.apps) delete o.apps[lid]; g.members[lid] = { n: rec.name || rec.id, lv: rec.lv | 0, role: 'member', j: Date.now(), s: Date.now() }; gTouch(); gNotify(lid, g); return { ok: true, joined: true, g: gPub(g, lid) }; }
+    g.apps = g.apps || {}; if (Object.keys(g.apps).length >= 50) return { err: 'full' }; g.apps[lid] = { n: rec.name || rec.id, lv: rec.lv | 0, t: Date.now() }; gTouch(); return { ok: true, applied: true }; }
+  if (op === 'cancel') { const g = GD.map[clean(d.gid, 12)]; if (g && g.apps) delete g.apps[lid]; gTouch(); return { ok: true }; }
+  if (!myG) return { err: 'noguild' };
+  if (op === 'accept' || op === 'reject') { if (myR < 2) return { err: 'perm' }; const l = byMid(myG.apps, d.mid); if (!l) return { err: 'nouser' };
+    if (op === 'accept') { if (GD.idx[l]) { delete myG.apps[l]; gTouch(); return { err: 'inguild' }; } if (Object.keys(myG.members).length >= GMAX) return { err: 'full' };
+      const a = myG.apps[l]; myG.members[l] = { n: a.n, lv: a.lv, role: 'member', j: Date.now(), s: 0 }; for (const o of Object.values(GD.map)) if (o.apps) delete o.apps[l]; gTouch(); gNotify(l, myG); }
+    else { delete myG.apps[l]; gTouch(); } return { ok: true, g: gPub(myG, lid) }; }
+  if (op === 'kick') { const l = byMid(myG.members, d.mid); if (!l || l === lid) return { err: 'nouser' }; const tr = GROLE[myG.members[l].role]; if (myR < 2 || tr >= myR) return { err: 'perm' };
+    delete myG.members[l]; gTouch(); gNotify(l, null); return { ok: true, g: gPub(myG, lid) }; }
+  if (op === 'role') { if (myR < 3) return { err: 'perm' }; const l = byMid(myG.members, d.mid); if (!l || l === lid) return { err: 'nouser' };
+    if (d.role === 'leader') { myG.members[l].role = 'leader'; myG.members[lid].role = 'officer'; myG.leader = l; } else myG.members[l].role = d.role === 'officer' ? 'officer' : 'member';
+    gTouch(); return { ok: true, g: gPub(myG, lid) }; }
+  if (op === 'set') { if (myR < 2) return { err: 'perm' }; if (d.notice != null) myG.notice = clean(d.notice, 200); if (d.open != null) myG.open = !!d.open; gTouch(); return { ok: true, g: gPub(myG, lid) }; }
+  if (op === 'leave' || op === 'disband') {
+    if (op === 'disband') { if (myR < 3) return { err: 'perm' }; for (const l in myG.members) gNotify(l, null); delete GD.map[myG.id]; gTouch(); return { ok: true, g: null }; }
+    delete myG.members[lid]; const rest = Object.keys(myG.members);
+    if (!rest.length) delete GD.map[myG.id];
+    else if (myG.leader === lid) { const nx = rest.sort((p, q) => (GROLE[myG.members[q].role] - GROLE[myG.members[p].role]) || (myG.members[p].j - myG.members[q].j))[0]; myG.members[nx].role = 'leader'; myG.leader = nx; }
+    gTouch(); gNotify(lid, null); return { ok: true, g: null }; }
+  return { err: 'unknown' }; }
 const lockTbl = new Map();
 async function handle(path_, d, ip) {
   if (path_ === '/api/ping') return { ok: true, t: Date.now(), store: UP_URL ? 'upstash' : 'file' };
@@ -83,9 +143,11 @@ async function handle(path_, d, ip) {
     if (d.stat && typeof d.stat === 'object') rec.stat = { floor: d.stat.floor | 0, mine: d.stat.mine | 0, kills: d.stat.kills | 0 };
     try { await lbLoad(); const S = rec.stat || {}, X = d.stat || {}; LB.map[lid] = { n: rec.name, lv: rec.lv, cls: rec.cls, fl: lbN(S.floor, 999), k: lbN(S.kills, 1e8), b: lbN(X.boss, 1e7), w: lbN(X.w, 1e12), t: clean(X.t, 16), u: Date.now() };
       const ks = Object.keys(LB.map); if (ks.length > 5000) { ks.sort((p, q) => LB.map[p].u - LB.map[q].u); for (const k of ks.slice(0, ks.length - 5000)) delete LB.map[k]; } LB.dirty = true; } catch (e) {}
+    try { await gLoad(); gTouchMember(lid, rec.name, rec.lv); } catch (e) {}
     if (!await dbSet(lid, rec)) return { err: 'store' };
     return { ok: true, rev: rec.rev, upd: rec.upd };
   }
+  if (path_ === '/api/guild') return guildOp(lid, rec, d);
   if (path_ === '/api/friends') {
     if (d.op === 'set') { const arr = Array.isArray(d.friends) ? d.friends : []; rec.friends = [...new Set(arr.map(x => clean(String(x), 14)).filter(Boolean))].slice(0, 200); if (!await dbSet(lid, rec)) return { err: 'store' }; }
     return { ok: true, friends: rec.friends || [] };
@@ -122,4 +184,4 @@ function middleware(req, res, allowOrigin) {
 async function verify(id, token) { const lid = clean(id, 16).toLowerCase(); if (!ID_RE.test(lid)) return null; const rec = await dbGet(lid); if (!await authToken(rec, token)) return null; return { lid, name: rec.name || id, gm: !!rec.gm || GM_IDS.includes(lid) }; }
 async function mailAdd(lid, item) { const rec = await dbGet(lid); if (!rec) return false; rec.mail = (rec.mail || []).slice(-60); rec.mail.push(Object.assign({ ts: Date.now() }, item)); return dbSet(lid, rec); }
 async function mailTake(lid) { const rec = await dbGet(lid); if (!rec || !rec.mail || !rec.mail.length) return []; const m = rec.mail; rec.mail = []; await dbSet(lid, rec); return m; }
-module.exports = { middleware, handle, GM_IDS, verify, mailAdd, mailTake };
+module.exports = { middleware, handle, GM_IDS, verify, mailAdd, mailTake, guildOf, guildOfSync, setGuildHook: fn => { GD.hook = fn; } };
