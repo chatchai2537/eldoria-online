@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#1a1226"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><link rel="apple-touch-icon" href="icon-192.png"><meta name="eldoria-server" content="wss://eldoria-online.onrender.com">
-<title>ตำนานเอลโดเรีย v4.35</title>
+<title>ตำนานเอลโดเรีย v4.36</title>
 <style>
 :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#f3efe6;--fg:#2b2a26;--card:#fff;--bd:#cfc8b8}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1d1c19;--fg:#ece7da;--card:#2a2925;--bd:#4a4740}}
@@ -10911,7 +10911,7 @@ function thSpire18(x,by,h,c1,c2,gem){let w=16,y=by-46;const n=Math.round(h/4);fo
 // ---------- อาคารใหม่ 2 หลัง (บ้านว่างเดิม) ----------
 SD.bank={name:'ธนาคารเอลโดเรีย',emoji:'🏦',icon:'bank',img:'house1',b:[30,24,5,4],door:Object.assign({},SD.potion.door),sign:Object.assign({},SD.potion.sign),
  owner:{name:'คุณธนา (นายธนาคาร)',c:'#2a3a5a',h:'#3a2a1a',g:'m',age:'adult',greet:['สวัสดีครับ ธนาคารเอลโดเรียยินดีให้บริการ','ฝากเหรียญไว้กับเรา ปลอดภัยและได้ดอกเบี้ยทุกวันครับ'],
-  lines:['ดอกเบี้ยวันละ 0.5% ของยอดฝาก (สูงสุดวันละ 1,000 เหรียญ) สะสมได้สูงสุด 7 วันครับ','เงินในธนาคารไม่หายไปไหน ต่อให้ล้มกลางดันเจี้ยนก็ตาม','ถ้าจะฝากของ เดินไปโกดังลุงคลังที่หัวเมืองฝั่งขวาได้เลยครับ']},solid:SD.potion.solid.slice(),sell:[],buy:[]};
+  lines:['ดอกเบี้ยวันละ 0.2% ของยอดฝาก (สูงสุดวันละ 400 เหรียญ) สะสมได้สูงสุด 7 วันครับ','เงินในธนาคารไม่หายไปไหน ต่อให้ล้มกลางดันเจี้ยนก็ตาม','ถ้าจะฝากของ เดินไปโกดังลุงคลังที่หัวเมืองฝั่งขวาได้เลยครับ']},solid:SD.potion.solid.slice(),sell:[],buy:[]};
 SD.ware={name:'โกดังรับฝากของลุงคลัง',emoji:'📦',icon:'ware',img:'house2',b:[30,3,5,4],door:Object.assign({},SD.skill.door),sign:Object.assign({},SD.skill.sign),
  owner:{name:'ลุงคลัง',c:'#7a5a2a',h:'#d8d4c8',g:'m',age:'elder',apron:1,greet:['มาฝากของหรือจ๊ะหลาน ลุงเก็บให้อย่างดี','ของเยอะก็ไม่ต้องห่วง ฝากทีเดียวได้หมด'],
   lines:['ของที่ฝากไว้ไม่มีน้ำหนัก ไม่ถ่วงกระเป๋านะหลาน','อยากได้ช่องเพิ่ม ลุงขยายโกดังให้ได้ แค่จ่ายเหรียญนิดหน่อย','ที่ดินของหลานก็มีหีบคลังเหมือนกันนะ']},solid:SD.skill.solid?SD.skill.solid.slice():SD.potion.solid.slice(),sell:[],buy:[]};
@@ -10963,7 +10963,7 @@ const BANK19=(()=>{let B={coin:0,day:0,log:[]};try{Object.assign(B,JSON.parse(lo
 const bankSave19=()=>{try{localStorage.setItem('fm_bank19',JSON.stringify(BANK19))}catch(e){}try{saveGame(true)}catch(e){}};
 const dayNo19=()=>Math.floor((Date.now()+7*3600e3)/864e5);
 const bankLog19=(t,n)=>{BANK19.log.push([Date.now(),t,n]);if(BANK19.log.length>12)BANK19.log.shift()};
-function bankInterest19(){const d=dayNo19();if(!BANK19.day){BANK19.day=d;return 0}const days=Math.min(7,d-BANK19.day);if(days<=0)return 0;let tot=0;for(let i=0;i<days;i++){const it=Math.min(1000,Math.floor(BANK19.coin*.005));BANK19.coin+=it;tot+=it}BANK19.day=d;if(tot>0)bankLog19('ดอกเบี้ย '+days+' วัน',tot);return tot}
+function bankInterest19(){const d=dayNo19();if(!BANK19.day){BANK19.day=d;return 0}const days=Math.min(7,d-BANK19.day);if(days<=0)return 0;let tot=0;for(let i=0;i<days;i++){const it=Math.min(400,Math.floor(BANK19.coin*.002));BANK19.coin+=it;tot+=it}BANK19.day=d;if(tot>0)bankLog19('ดอกเบี้ย '+days+' วัน',tot);return tot}
 const bkW19=mk6('bank19');const BK19={n:''};
 function openBank19(){if(!(D&&D.shop==='bank')){say('🏦 ฝาก/ถอนเหรียญได้ที่ธนาคารเอลโดเรีย (ถนนล่าง ข้างกิลด์)');sfx('thud');return}const it=bankInterest19();if(it>0){bankSave19();say('💰 ได้ดอกเบี้ย +'+it.toLocaleString()+' เหรียญ')}p6open(bkW19);bankRender19()}
 window.openBank19=openBank19;
@@ -10973,7 +10973,7 @@ function bankRender19(){const amt=parseInt(BK19.n,10)||0,Q=(v,l)=>'<button oncli
   +'<div class="bk19c"><div><small>ยอดเงินในบัญชี</small><b>🏦 '+BANK19.coin.toLocaleString()+'</b></div><div><small>เหรียญในกระเป๋า</small><b>🪙 '+inv.coin.toLocaleString()+'</b></div></div>'
   +'<div class="bk19i"><input id="bk19n" type="number" min="1" inputmode="numeric" placeholder="กรอกจำนวนเหรียญ" value="'+BK19.n+'" oninput="BK19n19(this.value)"><div class="bk19q">'+Q(100,'100')+Q(1000,'1,000')+Q(10000,'10,000')+Q(-1,'ครึ่งหนึ่ง')+Q(-2,'ทั้งหมด')+'</div>'
   +'<div class="bk19a"><button class="bt g" onclick="bkDo19(\'in\')">📥 ฝากเหรียญ</button><button class="bt" onclick="bkDo19(\'out\')">📤 ถอนเหรียญ</button></div>'
-  +'<small style="opacity:.8">ดอกเบี้ย 0.5% ต่อวัน (สูงสุด 1,000/วัน · สะสมได้ 7 วัน) · คิดให้อัตโนมัติเมื่อมาที่ธนาคาร</small></div>'
+  +'<small style="opacity:.8">ดอกเบี้ย 0.2% ต่อวัน (สูงสุด 400/วัน · สะสมได้ 7 วัน) · คิดให้อัตโนมัติเมื่อมาที่ธนาคาร</small></div>'
   +'<div class="bk19log"><div class="v8t">🧾 รายการล่าสุด</div>'+log+'</div></div></div>'}
 window.BK19n19=v=>{BK19.n=String(v||'').replace(/\D/g,'').slice(0,9)};
 window.bkSet19=v=>{const box=document.getElementById('bk19n');if(v===-1||v===-2){const src=Math.max(inv.coin,BANK19.coin);BK19.n=String(v===-2?'all':Math.floor(src/2))}else BK19.n=String(v);if(BK19.n==='all'){BK19.n='';BK19.all=1}else BK19.all=0;bankRender19();const b=document.getElementById('bk19n');if(b){if(BK19.all){b.placeholder='ทั้งหมด';b.value=''}}};
@@ -11373,7 +11373,7 @@ MSPEC.skel.cap=6;
 {const _sm=summon;summon=function(k,n){_sm(k,n);try{if(P.cls==='summoner')for(const o of MIN)if(o.S===MSPEC[k]&&!o.boost){o.boost=1;o.S=Object.assign({},o.S,{mult:o.S.mult*1.3})}}catch(e){}}}
 // สกิล
 const SKN25={
- ninja:[()=>{for(let i=0;i<8;i++){const a=i*.785;shoot('shuri25',{dv:[Math.cos(a),Math.sin(a)],sp:460,range:240,mult:.9,pierce:1,r:9})}P.at=0;P.cmb=0;sfx('swing2')},
+ ninja:[()=>{for(let i=0;i<8;i++){const a=i*.785;shoot('shuri25',{dv:[Math.cos(a),Math.sin(a)],sp:460,range:240,mult:.9,pierce:1,r:9})}P.draw=true;sfx('swing2')},
   st=>{const e=near25(280);if(st===0){if(e){blink25(e);hurtE(e,1.8,{kb:120,crit:.3});ef25({k:'slashX',x:e.x,y:e.y-14,l:.35})}else{const v=DIRV[P.dir];P.dv=v.slice();P.dash=.2;P.dcd=.25;P.dashHit=new Set();P.dashMult=1.4}}
    else if(st===1){ef25({k:'clones',x:P.x,y:P.y,l:.5});eachIn(P.x,P.y-8,82,m=>hurtE(m,1.4,{kb:140}));sfx('swing');sfx('swing2')}
    else{ef25({k:'smoke',x:P.x,y:P.y,l:1.6});eachIn(P.x,P.y-8,90,m=>hurtE(m,2.0,{kb:200,stun:1.2}));P.iframe=Math.max(P.iframe,1.5);sfx('thud')}},
@@ -11401,7 +11401,7 @@ const SKN25={
    else if(st===1){const x=P.x+dv[0]*110,y=P.y+dv[1]*110;ef25({k:'curse',x,y,r:85,l:4,tick:0});sfx('warp')}
    else{shoot('bone25',{dv,sp:700,range:420,mult:3.0,pierce:99,r:10});sfx('crumble');shake(2,.1)}},
   ()=>{ef25({k:'deathnova',x:P.x,y:P.y,l:.8});eachIn(P.x,P.y-8,140,e=>hurtE(e,2.2,{kb:240,col:'#7affb0'}));summon('skel',5);shake(5,.3);flash('#3aff9a',.25);sfx('thud')}],
- monk:[()=>{const v=DIRV[P.dir];let n=0;const go=()=>{if(n++>=8||P.dead)return;eachIn(P.x+v[0]*30,P.y-10+v[1]*24,40,e=>hurtE(e,.55,{kb:30}));ef25({k:'fist',x:P.x+v[0]*(24+Math.random()*16)+(Math.random()-.5)*14,y:P.y-14+v[1]*18+(Math.random()-.5)*14,l:.18});sfx('swing');setTimeout(go,70)};go();P.at=0;P.cmb=n%2},
+ monk:[()=>{const v=DIRV[P.dir];let n=0;const go=()=>{if(n++>=8||P.dead)return;eachIn(P.x+v[0]*30,P.y-10+v[1]*24,40,e=>{if(!(typeof wallBetween7==='function'&&wallBetween7(P.x,P.y-6,e.x,e.y-6)))hurtE(e,.55,{kb:30})});ef25({k:'fist',x:P.x+v[0]*(24+Math.random()*16)+(Math.random()-.5)*14,y:P.y-14+v[1]*18+(Math.random()-.5)*14,l:.18});sfx('swing');setTimeout(go,70)};go();P.draw=true},
   st=>{const v=DIRV[P.dir],dv=aimDir(260);
    if(st===0){shoot('palm25',{dv,sp:460,range:200,mult:1.6,pierce:99,r:20});sfx('swing2')}
    else if(st===1){P.at=0;P.cmb=1;P.skAt=1.6;vfx('upper',P.x,P.y,.4,{dir:P.dir});eachIn(P.x+v[0]*26,P.y-10+v[1]*22,44,e=>{hurtE(e,1.8,{kb:60,stun:.6});e.air=.6});sfx('swing')}
@@ -11939,6 +11939,67 @@ openPvp8=function(){p6open(pvW29);PV29.tab='home';pvRender29();if(NET.on)netSend
 // ฉายา PvP
 for(const t of [['pv_duel10','⚔️ นักดวล','#ff8a6a','ชนะดวล 10 ครั้ง',()=>(ST20.dw|0)>=10,'epic'],['pv_streak5','💀 ไร้เทียมทาน','#ff5a5a','ล้มติดกัน 5 คนในสนามประลอง',()=>(ST20.ast|0)>=5,'epic'],
  ['pv_master','👑 ราชันย์สังเวียน','#ffd23a','เรตติ้ง PvP ถึง 1700 (มาสเตอร์)',()=>(ST20.pvbest|0)>=1700,'leg'],['pv_buy','🔥 กระหายสงคราม','#ff7a3a','แลกด้วยเกียรติยศ 300 ที่ร้านเกียรติยศ',()=>!!ST20.pvbuy,'epic']]){TTL20.push(t.slice(0,5));TTLMAP20[t[0]]=TTL20[TTL20.length-1];try{TIER23[t[0]]=t[5]}catch(e){}}
+
+// =====================================================================
+// fix30.js (v4.36) — ปุ่มควบคุมบนจอใหม่: ใหญ่ขึ้น กดง่าย จัดเป็นวงรอบปุ่มโจมตี (แบบเกมมือถือ)
+// =====================================================================
+{const st=document.createElement('style');st.textContent=`
+#acts{transform:none!important;width:250px!important;height:220px!important;right:calc(6px + var(--sr))!important;bottom:calc(6px + var(--sb))!important}
+#acts button{box-shadow:0 3px 10px rgba(0,0,0,.55),inset 0 0 0 2px rgba(0,0,0,.25)!important}
+#acts #atk{width:96px!important;height:96px!important;right:6px!important;bottom:6px!important;font-size:42px!important;border-width:3px!important;background:radial-gradient(circle at 40% 35%,rgba(220,90,60,.85),rgba(120,25,15,.85))!important}
+#acts #atk:active{transform:scale(.93)}
+#acts #dashb{width:60px!important;height:60px!important;right:110px!important;bottom:4px!important;font-size:28px!important}
+#acts .sk{width:64px!important;height:64px!important;font-size:28px!important;border-width:3px!important}
+#acts #sk1{right:112px!important;bottom:72px!important}
+#acts #sk2{right:70px!important;bottom:138px!important}
+#acts #sk3{right:4px!important;bottom:110px!important}
+#acts #sk5{display:none!important}
+#acts #sk4{width:50px!important;height:50px!important;right:184px!important;bottom:78px!important;font-size:22px!important}
+#acts #ultb{width:56px!important;height:56px!important;right:178px!important;bottom:6px!important}
+#acts .sk .n{font-size:20px!important;text-shadow:0 2px 3px #000}
+#acts .sk small{font-size:11px!important}
+#acts .sk:active,#acts #dashb:active{transform:scale(.92)}
+#joybase{border-width:4px!important}
+#joyhint30{position:absolute;left:calc(26px + var(--sl,0px));bottom:calc(26px + var(--sb,0px));width:120px;height:120px;border-radius:50%;border:3px dashed rgba(255,255,255,.35);pointer-events:none;z-index:1;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.55);font:700 11px system-ui,"Noto Sans Thai",sans-serif;text-align:center}
+#joyhint30.r{left:auto;right:calc(26px + var(--sr,0px))}
+@media (max-height:360px){#acts{transform:scale(.86)!important;transform-origin:right bottom}}
+@media (min-height:700px) and (pointer:coarse){#acts{transform:scale(1.12)!important;transform-origin:right bottom}}
+`;document.head.appendChild(st)}
+// จอยสติ๊กใหญ่ขึ้น (ไม่หดบนจอเตี้ยแล้ว) + วงบอกตำแหน่งตอนยังไม่แตะ
+try{if(!SET.ctl30){SET.ctl30=1;SET.joySize=Math.max(SET.joySize||110,140);try{saveSet()}catch(e){}}}catch(e){}
+joyStyle=function(){const s=Math.round(SET.joySize);joyBase.style.width=joyBase.style.height=s+'px';joyKnob.style.width=joyKnob.style.height=s*.44+'px';joyBase.style.opacity=SET.joyOp;joyZone.classList.toggle('r',SET.joySide==='right');joyBase.classList.toggle('run',!!SET.joyRun)};
+try{joyStyle();joyRest()}catch(e){}
+{const h=document.createElement('div');h.id='joyhint30';h.textContent='ลากเพื่อเดิน';gid('wrap').appendChild(h);
+ setInterval(()=>{try{const show=SET.ctl==='joy'&&SET.joyMode!=='fixed'&&!JOY.on&&COARSE&&!PAUSED;h.hidden=!show;h.classList.toggle('r',SET.joySide==='right')}catch(e){}},300)}
+
+// =====================================================================
+// fix31.js (v4.36) — มอนในเหมือง/โซนไม่ดรอปแร่-ไม้-แท่งแร่อีกต่อไป (ดรอปของเฉพาะตัว เช่น โกเลม → แกนหินเวท)
+//                  · เศรษฐกิจตึงขึ้น (เหรียญหายากขึ้น) · เกมยากขึ้น (มอนอึด/แรงขึ้น · XP ช้าลง)
+// =====================================================================
+// ---------- 1) ของดรอปจากมอน ----------
+// วัตถุดิบจากการขุด/ตัดไม้ — ต้องหาเองจากเหมือง/ต้นไม้ ไม่ดรอปจากมอนแล้ว
+const NOMOB31=new Set(['stone','iron','copper','silver','gold','gem','ore','ingSt','ingot','ingCu','ingAg','ingAu','ingDm','wood','woodE','woodF','woodS','woodH','woodG']);
+let MK31=0;
+{const _ad=addDrop;addDrop=function(type,x,y){if(MK31>0&&NOMOB31.has(type))return;return _ad(type,x,y)};window.addDrop=addDrop}
+// เหรียญจากการล้มมอน (ส่วนที่บวกตรง ๆ) เหลือ 45% · โอกาสดรอปของเฉพาะตัวมอนสูงขึ้นเล็กน้อย
+{const _mk=mobKill;mobKill=function(m){MK31++;const c0=inv.coin;let r;try{r=_mk(m)}finally{MK31--}
+  try{const g=inv.coin-c0;if(g>0)inv.coin=c0+Math.round(g*.45);
+   const j=JFAM[m.f];if(j&&!m.wb10&&!m.boss&&Math.random()<.15)addDrop(j,m.x,m.y);
+   // บอสเหมือง: แทนแร่ด้วยของเฉพาะตัว ×3 + หินตีบวก
+   if(m.boss&&D&&D.zone&&!D.dg&&!m.wb10){if(j)for(let i=0;i<3;i++)addDrop(j,m.x,m.y);addDrop('estone',m.x,m.y)}}catch(e){}return r}}
+// ---------- 2) เศรษฐกิจ ----------
+// ราคาขายของให้ร้าน ×0.6
+try{for(const k in SD2){const S=SD2[k];if(S&&Array.isArray(S.sell))for(const e of S.sell)if(typeof e[2]==='number')e[2]=Math.max(1,Math.round(e[2]*.6))}}catch(e){}
+try{for(let i=0;i<GP.length;i++)GP[i]=Math.max(1,Math.round(GP[i]*.6))}catch(e){}
+try{const _ls=lifeSell;lifeSell=function(k,p){return _ls(k,Math.max(1,Math.round(p*.7)))};window.lifeSell=lifeSell}catch(e){}
+// กล่องสมบัติดันเจี้ยน: เหรียญเหลือครึ่ง
+try{const _oc=openChest_;openChest_=function(){const c0=inv.coin;const r=_oc.apply(this,arguments);try{const g=inv.coin-c0;if(g>0)inv.coin=c0+Math.round(g*.5)}catch(e){}return r};window.openChest_=openChest_}catch(e){}
+// ---------- 3) ความยาก ----------
+{const _ms=mobStats;mobStats=function(L,f,el,bo){const s=_ms(L,f,el,bo);return Object.assign({},s,{hp:Math.round(s.hp*1.25),atk:Math.round(s.atk*1.2)})}}
+{const _gx=gainXp;gainXp=function(n){return _gx(Math.max(1,Math.round((+n||0)*.8)))};window.gainXp=gainXp}
+
+// กระสุน/ดาวกระจายห้ามทำดาเมจทะลุกำแพง (ตรวจเส้นระหว่างจุดกระสุนกับเป้า)
+{const _h=hurtE;hurtE=function(e,mult,o){try{if(o&&o.fx!=null&&e&&!e.pvp7&&typeof wallBetween7==='function'&&D&&D.zone&&wallBetween7(o.fx,o.fy,e.x,e.y-6))return 0}catch(_){}return _h(e,mult,o)}}
 
 // fixz.js — ท้ายสุด: คืนไอเท็มที่ถูกพักไว้ตอนโหลด (ไอเท็มที่สร้างในสคริปต์ท้าย ๆ เช่น Lv.105+ / อาวุธประจำอาชีพ)
 try{const Q=window.__PEND8;if(Q){window.__PEND8=null;let ch=0;for(const k in Q.a)if(ITEMS[Q.a[k]]){P.armor[k]=Q.a[k];ch=1}for(const id in Q.g)if(ITEMS[id]){GEAR[id]=Q.g[id];ch=1}
