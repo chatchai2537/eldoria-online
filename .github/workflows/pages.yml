@@ -30,6 +30,7 @@ jobs:
         run: |
           mkdir dist
           cp game_built.html dist/index.html
+          for f in manifest.webmanifest sw.js icon-192.png icon-512.png; do [ -f "$f" ] && cp "$f" dist/; done
       - name: Upload site
         uses: actions/upload-pages-artifact@v3
         with:
