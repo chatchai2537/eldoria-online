@@ -15,8 +15,10 @@ const STATIC = { '/': ['index.html','text/html; charset=utf-8'], '/index.html': 
   '/sw.js': ['sw.js','text/javascript; charset=utf-8'], '/icon-192.png': ['icon-192.png','image/png'], '/icon-512.png': ['icon-512.png','image/png'] };
 const ACC = require('./accounts');
 const WORLD = require('./world');
+const PVP = require('./pvp');
 const originOk = (o, host) => { if (!o || o === 'null' || o === 'file://') return true; if (!ALLOWED_ORIGINS.length || ALLOWED_ORIGINS.includes(o)) return true; try { return new URL(o).host === host; } catch (e) { return false; } };
 const server = http.createServer((req, res) => {
+  if ((req.url || '').split('?')[0] === '/api/pvptop') { res.writeHead(200, { 'content-type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' }); res.end(JSON.stringify({ ok: true, list: PVP.top() })); return; }
   if (ACC.middleware(req, res, o => originOk(o, req.headers.host || ''))) return;
   const u = (req.url || '/').split('?')[0], f = STATIC[u];
   if ((u === '/' || u === '/index.html') && !process.env.SERVE_LOCAL) { res.writeHead(302, { location: GAME_URL, 'cache-control': 'no-store' }); res.end(); return; }
@@ -46,10 +48,10 @@ function sanitizeFx(f) { if (!f || typeof f !== 'object') return null; const e =
   return { e, rn, fw: clean(f.fw, 16), fb: clean(f.fb, 16), m: clean(f.m, 10), mo: !!f.mo }; }
 function sanitizeState(d) {
   const armor = {}; if (d.armor && typeof d.armor === 'object') for (const k of ['sword','helm','chest','pants','arm','ring','neck']) if (d.armor[k]) armor[k] = clean(d.armor[k], 24);
-  const tier = {}; if (d.tier && typeof d.tier === 'object') for (const k of ['sword','axe','pick']) tier[k] = num(d.tier[k], 0, 9) | 0;
+  const tier = {}; if (d.tier && typeof d.tier === 'object') for (const k of ['sword','axe','pick']) tier[k] = num(d.tier[k], 0, 12) | 0;
   const lk = d.look && typeof d.look === 'object' ? { g: d.look.g === 'f' ? 'f' : 'm', top: hex(d.look.top), pants: hex(d.look.pants), hair: hex(d.look.hair) } : null;
   return { x: num(d.x, -1e4, 1e5), y: num(d.y, -1e4, 1e5), dir: DIRS.has(d.dir) ? d.dir : 'd', mv: !!d.mv, run: !!d.run, at: num(d.at, -1, 1), cmb: num(d.cmb, 0, 2) | 0,
-    tool: TOOLS.has(d.tool) ? d.tool : 'sword', draw: !!d.draw, armor, tier, lv: num(d.lv, 1, 999) | 0, dead: !!d.dead, cls: clean(d.cls, 10), pvp: !!d.pvp, look: lk, mount: clean(d.mount, 10), fx: sanitizeFx(d.fx), stl: d.stl && d.stl.ti ? { ti: clean(d.stl.ti, 24), n: num(d.stl.n, 0, 12) | 0 } : null, ttl: clean(d.ttl, 16) };
+    tool: TOOLS.has(d.tool) ? d.tool : 'sword', draw: !!d.draw, armor, tier, lv: num(d.lv, 1, 999) | 0, dead: !!d.dead, cls: clean(d.cls, 10), pvp: !!d.pvp, look: lk, mount: clean(d.mount, 10), fx: sanitizeFx(d.fx), stl: d.stl && d.stl.ti ? { ti: clean(d.stl.ti, 24), n: num(d.stl.n, 0, 12) | 0 } : null, ttl: clean(d.ttl, 16), hpP: num(d.hpP, 0, 100) | 0, pb: num(d.pb, 0, 3) | 0 };
 }
 const findByName = n => { n = String(n || '').toLowerCase(); for (const p of players.values()) if (p.joined && p.name.toLowerCase() === n) return p; for (const p of players.values()) if (p.joined && p.name.toLowerCase().startsWith(n)) return p; return null; };
 wss.on('connection', (ws, req) => {
@@ -92,16 +94,16 @@ wss.on('connection', (ws, req) => {
       // ตรวจ PvP ฝั่งเซิร์ฟเวอร์: ฉากเดียวกัน · ไม่ใช่ในเมือง · (สนามประลอง หรือ เปิด PvP ทั้งคู่) · ระยะ · เพดานดาเมจ · ความถี่
       const to = players.get(+d.to); if (!to || to === p || !p.st || !to.st || p.st.dead || to.st.dead) return;
       if (p.sc !== to.sc || safeScene(p.sc)) return;
-      if (!(p.sc === 'arena' || (p.st.pvp && to.st.pvp))) return;
+      const duel = PVP.duelOk(p, to); if (p.duel && !duel) return; if (!(duel || p.sc === 'arena' || (p.st.pvp && to.st.pvp))) return;
       if (Math.hypot(p.st.x - to.st.x, p.st.y - to.st.y) > 450) return;
       p.pvpT = p.pvpT.filter(t => now - t < 1000); if (p.pvpT.length >= 10) return; p.pvpT.push(now);
-      const dmg = Math.round(num(d.dmg, 1, 60 + p.st.lv * 25));
+      const dmg = Math.round(num(d.dmg, 1, 150 + p.st.lv * 45));
       send(to, { t: 'pvphit', from: id, name: p.name, dmg, crit: !!d.crit });
     } else if (d.t === 'pvpko') {
-      const by = players.get(+d.by); if (by && by.sc === p.sc) broadcast({ t: 'sys', txt: '⚔️ ' + by.name + ' ล้ม ' + p.name + (p.sc === 'arena' ? ' ในสนามประลอง!' : ' ในการดวล PvP!') });
-    } else WORLD.onMsg(p, d, now);
+      if (PVP.ko(p, d.by)) return; const by = players.get(+d.by); if (by && by.sc === p.sc) broadcast({ t: 'sys', txt: '⚔️ ' + by.name + ' ล้ม ' + p.name + (p.sc === 'arena' ? ' ในสนามประลอง!' : ' ในการดวล PvP!') });
+    } else if (!PVP.onMsg(p, d, now)) WORLD.onMsg(p, d, now);
   });
-  ws.on('close', () => { WORLD.onClose(p); ipCount.set(ip, Math.max(0, (ipCount.get(ip) || 1) - 1)); players.delete(id); broadcast({ t: 'gone', id }); if (p.joined) broadcast({ t: 'sys', txt: p.name + ' ออกจากเกม' }); });
+  ws.on('close', () => { PVP.onClose(p); WORLD.onClose(p); ipCount.set(ip, Math.max(0, (ipCount.get(ip) || 1) - 1)); players.delete(id); broadcast({ t: 'gone', id }); if (p.joined) broadcast({ t: 'sys', txt: p.name + ' ออกจากเกม' }); });
   ws.on('error', () => {});
 });
 setInterval(() => { const byScene = new Map(); for (const p of players.values()) if (p.st) { if (!byScene.has(p.sc)) byScene.set(p.sc, []); byScene.get(p.sc).push(p); }
@@ -109,6 +111,7 @@ setInterval(() => { const byScene = new Map(); for (const p of players.values())
   for (const p of players.values()) { const list = (byScene.get(p.sc) || []).filter(o => o !== p).map(o => Object.assign({ id: o.id, name: o.name, gtag: o.gtag || '' }, o.st)); send(p, { t: 'snap', on: n, ps: list }); } }, TICK_MS);
 setInterval(() => { for (const p of players.values()) { if (!p.alive) { p.ws.terminate(); continue; } p.alive = false; try { p.ws.ping(); } catch (e) {} } }, 15000);
 WORLD.init({ players, send, broadcast, ACC, clean, num });
+PVP.init({ players, send, broadcast, clean, num });
 ACC.setGuildHook((lid, g) => { for (const p of players.values()) if (p.acct === lid) { p.gid = g ? g.id : ''; p.gtag = g ? g.tag : ''; p.gname = g ? g.name : ''; send(p, { t: 'gupd', g }); } });
 // เปิดหน้าเกมที่ Render → ส่งไปเวอร์ชันล่าสุดบน GitHub Pages (ไม่ต้อง Deploy Render ทุกครั้งที่อัปเดตเกม)
 const GAME_URL = process.env.GAME_URL || 'https://chatchai2537.github.io/eldoria-online/';
