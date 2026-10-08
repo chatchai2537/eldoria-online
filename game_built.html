@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#1a1226"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><link rel="apple-touch-icon" href="icon-192.png"><meta name="eldoria-server" content="wss://eldoria-online.onrender.com">
-<title>ตำนานเอลโดเรีย v4.39</title>
+<title>ตำนานเอลโดเรีย v4.40</title>
 <style>
 :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#f3efe6;--fg:#2b2a26;--card:#fff;--bd:#cfc8b8}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1d1c19;--fg:#ece7da;--card:#2a2925;--bd:#4a4740}}
@@ -12376,6 +12376,17 @@ const nearHall36=()=>!!(D&&D.shop==='hall'&&typeof DGST11!=='undefined'&&Math.hy
 setInterval(()=>{try{if(ZM.hall36&&!shopEl.hidden&&!nearHall36())closeZMenu()}catch(e){}},300);
 // ตัวอัปเดตร้าน (ปิดหน้าต่างถ้าไม่ได้ยืนใกล้คนขายในอาคาร) — ยกเว้นตอนเปิดเมนูดันเจี้ยนที่รูปปั้น
 {const _us=updShop;updShop=function(dt){if(ZM.hall36&&!shopEl.hidden&&nearHall36()){const sv=STN.open;STN.open=sv||'hall36';try{return _us(dt)}finally{STN.open=sv}}return _us(dt)}}
+
+// =====================================================================
+// fix37.js (v4.40) — เอาทางเข้าถ้ำดันเจี้ยนเก่าในทุ่งหญ้าออก (ดันเจี้ยนย้ายไปอยู่ในปราสาทแล้ว)
+// =====================================================================
+try{for(let y=0;y<=3;y++)for(let x=W-7;x<=W-3;x++)if(map[y][x]===DOOR)map[y][x]=GRASS}catch(e){}
+drawCave=function(){};
+// ป้าย "ดันเจี้ยน 100 ชั้น" + จุดบนแผนที่เล็ก: ซ่อน (ยืมตำแหน่ง CV ไว้ให้ระบบเดิมที่ยังอ้างถึงเท่านั้น)
+{const _dd=drawDrops;drawDrops=function(){if(D)return _dd.apply(this,arguments);const sx=CV.tx;CV.tx=NaN;try{return _dd.apply(this,arguments)}finally{CV.tx=sx}}}
+{const _dm=drawMini;drawMini=function(){const sx=CV.tx;CV.tx=NaN;try{return _dm.apply(this,arguments)}finally{CV.tx=sx}}}
+// แผนที่ใหญ่/แผนที่เล็กที่วาดไว้แล้ว: ทาสีมุมถ้ำเป็นหญ้า
+try{const k=MINIW.src.getContext('2d'),pp=MINIW.s*T;k.fillStyle='#5a9a45';k.fillRect((W-7)*pp,0,5*pp,4*pp)}catch(e){}
 
 // fixz.js — ท้ายสุด: คืนไอเท็มที่ถูกพักไว้ตอนโหลด (ไอเท็มที่สร้างในสคริปต์ท้าย ๆ เช่น Lv.105+ / อาวุธประจำอาชีพ)
 try{const Q=window.__PEND8;if(Q){window.__PEND8=null;let ch=0;for(const k in Q.a)if(ITEMS[Q.a[k]]){P.armor[k]=Q.a[k];ch=1}for(const id in Q.g)if(ITEMS[id]){GEAR[id]=Q.g[id];ch=1}
