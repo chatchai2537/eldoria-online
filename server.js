@@ -6,7 +6,7 @@ const { WebSocketServer } = require('ws');
 const PORT = process.env.PORT || 8787;
 const MAX_PLAYERS = +process.env.MAX_PLAYERS || 200, MAX_PER_IP = +process.env.MAX_PER_IP || 4;
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean);
-const MSG_PER_SEC = 30, TICK_MS = 100, HIST_MAX = 40;
+const MSG_PER_SEC = 90, TICK_MS = 100, HIST_MAX = 40;
 const BAD = ['ควย','เหี้ย','สัส','เย็ด','fuck','shit','bitch','cunt','nigger'];
 const ipCount = new Map(), banned = new Map(), players = new Map(), history = [];
 let nextId = 1;
@@ -16,6 +16,7 @@ const STATIC = { '/': ['index.html','text/html; charset=utf-8'], '/index.html': 
 const ACC = require('./accounts');
 const WORLD = require('./world');
 const PVP = require('./pvp');
+const PARTY = require('./party');
 const originOk = (o, host) => { if (!o || o === 'null' || o === 'file://') return true; if (!ALLOWED_ORIGINS.length || ALLOWED_ORIGINS.includes(o)) return true; try { return new URL(o).host === host; } catch (e) { return false; } };
 const server = http.createServer((req, res) => {
   if ((req.url || '').split('?')[0] === '/api/pvptop') { res.writeHead(200, { 'content-type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' }); res.end(JSON.stringify({ ok: true, list: PVP.top() })); return; }
@@ -27,7 +28,7 @@ const server = http.createServer((req, res) => {
   res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8', 'access-control-allow-origin': '*' }); res.end('Eldoria online server OK — players: ' + players.size);
 });
 const clientIp = req => String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
-const wss = new WebSocketServer({ server, maxPayload: 8192, perMessageDeflate: false,
+const wss = new WebSocketServer({ server, maxPayload: 32768, perMessageDeflate: false,
   verifyClient: (info, cb) => { const ip = clientIp(info.req), origin = info.origin || '', host = info.req.headers.host || '';
     if ((banned.get(ip) || 0) > Date.now()) return cb(false, 403, 'banned');
     let sameHost = false; try { sameHost = !!origin && new URL(origin).host === host; } catch (e) {}
@@ -51,7 +52,7 @@ function sanitizeState(d) {
   const tier = {}; if (d.tier && typeof d.tier === 'object') for (const k of ['sword','axe','pick']) tier[k] = num(d.tier[k], 0, 12) | 0;
   const lk = d.look && typeof d.look === 'object' ? { g: d.look.g === 'f' ? 'f' : 'm', top: hex(d.look.top), pants: hex(d.look.pants), hair: hex(d.look.hair) } : null;
   return { x: num(d.x, -1e4, 1e5), y: num(d.y, -1e4, 1e5), dir: DIRS.has(d.dir) ? d.dir : 'd', mv: !!d.mv, run: !!d.run, at: num(d.at, -1, 1), cmb: num(d.cmb, 0, 2) | 0,
-    tool: TOOLS.has(d.tool) ? d.tool : 'sword', draw: !!d.draw, armor, tier, lv: num(d.lv, 1, 999) | 0, dead: !!d.dead, cls: clean(d.cls, 10), pvp: !!d.pvp, look: lk, mount: clean(d.mount, 10), fx: sanitizeFx(d.fx), stl: d.stl && d.stl.ti ? { ti: clean(d.stl.ti, 24), n: num(d.stl.n, 0, 12) | 0 } : null, ttl: clean(d.ttl, 16), hpP: num(d.hpP, 0, 100) | 0, pb: num(d.pb, 0, 3) | 0 };
+    tool: TOOLS.has(d.tool) ? d.tool : 'sword', draw: !!d.draw, armor, tier, lv: num(d.lv, 1, 999) | 0, dead: !!d.dead, cls: clean(d.cls, 10), pvp: !!d.pvp, look: lk, mount: clean(d.mount, 10), fx: sanitizeFx(d.fx), stl: d.stl && d.stl.ti ? { ti: clean(d.stl.ti, 24), n: num(d.stl.n, 0, 12) | 0 } : null, ttl: clean(d.ttl, 16), hpP: num(d.hpP, 0, 100) | 0, pb: num(d.pb, 0, 3) | 0, q: num(d.q, 0, 1e13), cl: d.cl && typeof d.cl === 'object' ? { i: num(d.cl.i, 0, 9) | 0, n: clean(d.cl.n, 24), t: num(d.cl.t, 0, 1e13) } : null };
 }
 const findByName = n => { n = String(n || '').toLowerCase(); for (const p of players.values()) if (p.joined && p.name.toLowerCase() === n) return p; for (const p of players.values()) if (p.joined && p.name.toLowerCase().startsWith(n)) return p; return null; };
 wss.on('connection', (ws, req) => {
@@ -75,7 +76,7 @@ wss.on('connection', (ws, req) => {
       if (p.sc && sc !== p.sc) for (const o of players.values()) if (o !== p && o.sc === p.sc) send(o, { t: 'gone', id });
       const ns = sanitizeState(d);
       if (p.st && sc === p.sc && Math.hypot(ns.x - p.st.x, ns.y - p.st.y) > 900 && !ns.dead) { if (++p.strikes > 20) { ws.close(1008, 'speed'); return; } }
-      p.sc = sc; p.st = ns;
+      if (sc !== p.sc) p.scT = now; p.sc = sc; p.st = ns;
     } else if (d.t === 'chat') {
       if (now - p.chatT < 700) return; p.chatT = now;
       const txt = filt(clean(d.txt, 140)); if (!txt) return;
@@ -101,17 +102,20 @@ wss.on('connection', (ws, req) => {
       send(to, { t: 'pvphit', from: id, name: p.name, dmg, crit: !!d.crit });
     } else if (d.t === 'pvpko') {
       if (PVP.ko(p, d.by)) return; const by = players.get(+d.by); if (by && by.sc === p.sc) broadcast({ t: 'sys', txt: '⚔️ ' + by.name + ' ล้ม ' + p.name + (p.sc === 'arena' ? ' ในสนามประลอง!' : ' ในการดวล PvP!') });
+    } else if (PARTY.onMsg(p, d, now)) {
     } else if (!PVP.onMsg(p, d, now)) WORLD.onMsg(p, d, now);
   });
-  ws.on('close', () => { PVP.onClose(p); WORLD.onClose(p); ipCount.set(ip, Math.max(0, (ipCount.get(ip) || 1) - 1)); players.delete(id); broadcast({ t: 'gone', id }); if (p.joined) broadcast({ t: 'sys', txt: p.name + ' ออกจากเกม' }); });
+  ws.on('close', () => { PARTY.onClose(p); PVP.onClose(p); WORLD.onClose(p); ipCount.set(ip, Math.max(0, (ipCount.get(ip) || 1) - 1)); players.delete(id); broadcast({ t: 'gone', id }); if (p.joined) broadcast({ t: 'sys', txt: p.name + ' ออกจากเกม' }); });
   ws.on('error', () => {});
 });
 setInterval(() => { const byScene = new Map(); for (const p of players.values()) if (p.st) { if (!byScene.has(p.sc)) byScene.set(p.sc, []); byScene.get(p.sc).push(p); }
   const n = [...players.values()].filter(p => p.joined).length;
-  for (const p of players.values()) { const list = (byScene.get(p.sc) || []).filter(o => o !== p).map(o => Object.assign({ id: o.id, name: o.name, gtag: o.gtag || '' }, o.st)); send(p, { t: 'snap', on: n, ps: list }); } }, TICK_MS);
+  for (const p of players.values()) { const list = (byScene.get(p.sc) || []).filter(o => o !== p).map(o => Object.assign({ id: o.id, name: o.name, gtag: o.gtag || '' }, o.st)); send(p, { t: 'snap', on: n, ps: list, h: PARTY.hostFor(p.sc, byScene.get(p.sc) || []) }); }
+  PARTY.cleanHosts(byScene); }, TICK_MS);
 setInterval(() => { for (const p of players.values()) { if (!p.alive) { p.ws.terminate(); continue; } p.alive = false; try { p.ws.ping(); } catch (e) {} } }, 15000);
 WORLD.init({ players, send, broadcast, ACC, clean, num });
 PVP.init({ players, send, broadcast, clean, num });
+PARTY.init({ players, send, clean, num, filt, findByName });
 ACC.setGuildHook((lid, g) => { for (const p of players.values()) if (p.acct === lid) { p.gid = g ? g.id : ''; p.gtag = g ? g.tag : ''; p.gname = g ? g.name : ''; send(p, { t: 'gupd', g }); } });
 // เปิดหน้าเกมที่ Render → ส่งไปเวอร์ชันล่าสุดบน GitHub Pages (ไม่ต้อง Deploy Render ทุกครั้งที่อัปเดตเกม)
 const GAME_URL = process.env.GAME_URL || 'https://chatchai2537.github.io/eldoria-online/';
