@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#1a1226"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><link rel="apple-touch-icon" href="icon-192.png"><meta name="eldoria-server" content="wss://eldoria-online.onrender.com">
-<title>ตำนานเอลโดเรีย v4.43</title>
+<title>ตำนานเอลโดเรีย v4.44</title>
 <style>
 :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#f3efe6;--fg:#2b2a26;--card:#fff;--bd:#cfc8b8}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1d1c19;--fg:#ece7da;--card:#2a2925;--bd:#4a4740}}
@@ -12561,6 +12561,14 @@ document.getElementById('muteb').textContent=SET.mute?'🔇':'🔊';
 requestAnimationFrame(frame);
 startInTown(); // เริ่มเกมที่เมือง (จุดเกิด)
 
+</script>
+<script>
+// fix39 (v4.44) — ในดันเจี้ยนไม่บอกตำแหน่งบอสบนแผนที่เล็ก/แผนที่ใหญ่/ลูกศรนำทาง (ต้องสำรวจหาเอง)
+try{const dgHide39=()=>!!(D&&D.dg);
+{const _dm=drawMini;drawMini=function(){if(!dgHide39())return _dm.apply(this,arguments);const b=D.boss;D.boss=null;try{return _dm.apply(this,arguments)}finally{if(D&&D.boss==null)D.boss=b}}}
+{const _bm=bigMap;bigMap=function(){if(!dgHide39())return _bm.apply(this,arguments);const b=D.boss;D.boss=null;try{return _bm.apply(this,arguments)}finally{if(D&&D.boss==null)D.boss=b}}}
+{const _gt=guideTarget;guideTarget=function(){const g=_gt.apply(this,arguments);if(g&&dgHide39()&&/บอส/.test(String(g[2]||'')))return null;return g}}
+}catch(e){console.warn('fix39',e)}
 </script>
 </body>
 </html>
