@@ -8952,7 +8952,7 @@ SystemValidator.runFullGamePlaytest=async function(opt){opt=Object.assign({floor
 // gm8.js — GM เฉพาะไอดีเจ้าของเกม (tiksi / wiwekwin2537) + ต้องยืนยัน "กุญแจ GM" ลับครั้งเดียวต่อเครื่อง
 // คนอื่นตั้งชื่อไอดีเหมือนกันก็เป็น GM ไม่ได้ (ไม่มีกุญแจ) · ยกเลิกรหัส GM เดิม (/gm รหัส)
 // =====================================================================
-const GM8_HASH='87f7519756acc21aec883778c61ce9b1f36f872bba3bef338eaddd7f27ae386f';
+const GM8_HASH='5cfad4c7b597ef0b67906cf78916d7f76e9ba2c22bd3e8aefe3f7083bf897a55';
 function sha256hex8(str){const K=[0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2];
  const b=new TextEncoder().encode(str),l=b.length,n=((l+9+63)>>6)<<6,m=new Uint8Array(n);m.set(b);m[l]=0x80;const bl=l*8;for(let i=0;i<4;i++)m[n-1-i]=(bl>>>(8*i))&255;
  let h=[0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19];const w=new Uint32Array(64),r=(x,k)=>(x>>>k)|(x<<(32-k));
@@ -9136,7 +9136,22 @@ window.exportSave8=exportSave8;window.importSave8=importSave8;window.openSave8=(
 const PWA8={evt:null,can:false};
 (function(){const web=location.protocol==='https:'&&!/claude\.ai|claudeusercontent|anthropic/.test(location.hostname);
  if(!document.querySelector('link[rel=manifest]')&&web){const l=document.createElement('link');l.rel='manifest';l.href='manifest.webmanifest';document.head.appendChild(l)}
- if(web&&'serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{})})}
+ if(web&&'serviceWorker' in navigator){window.addEventListener('load',()=>{
+  // ---- อัปเดตอัตโนมัติ: เช็กเวอร์ชันใหม่ทุก 3 นาที / ตอนกลับมาที่แท็บ แล้วเด้งแถบ "อัปเดตเลย" ----
+  let shown=false;const banner=()=>{if(shown)return;shown=true;const b=document.createElement('div');
+   b.style.cssText='position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:99999;background:#2a1d44;color:#fff;border:1px solid #c9a227;border-radius:10px;padding:10px 14px;font:14px sans-serif;display:flex;gap:10px;align-items:center;box-shadow:0 4px 18px #0008';
+   b.innerHTML='<span>✨ มีเวอร์ชันใหม่ของเกม</span><button style="background:#c9a227;border:0;border-radius:6px;padding:6px 10px;font-weight:bold;cursor:pointer">อัปเดตเลย</button>';
+   b.querySelector('button').onclick=()=>location.reload();document.body.appendChild(b)};
+  const sig=r=>r.headers.get('etag')||r.headers.get('last-modified')||r.headers.get('content-length')||'';
+  let base=null;const verCheck=()=>fetch('index.html',{method:'HEAD',cache:'no-store'}).then(r=>{const s=sig(r);if(!s)return;if(base===null)base=s;else if(s!==base)banner()}).catch(()=>{});
+  verCheck();
+  navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(reg=>{
+   const chk=()=>{try{reg.update()}catch(_){}verCheck()};
+   setInterval(chk,180000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)chk()});
+  }).catch(()=>{});
+  let had=!!navigator.serviceWorker.controller;
+  navigator.serviceWorker.addEventListener('controllerchange',()=>{if(had)banner();had=true});
+ })}
  window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();PWA8.evt=e;PWA8.can=true;try{pmRender7()}catch(_){}});
  window.addEventListener('appinstalled',()=>{PWA8.can=false;say('📲 ติดตั้งเกมลงเครื่องแล้ว — เปิดจากไอคอนบนหน้าจอได้เลย')})})();
 const isStandalone8=()=>{try{return matchMedia('(display-mode: standalone)').matches||matchMedia('(display-mode: fullscreen)').matches||navigator.standalone===true}catch(e){return false}};
