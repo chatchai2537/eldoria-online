@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#1a1226"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><link rel="apple-touch-icon" href="icon-192.png"><meta name="eldoria-server" content="wss://eldoria-online.onrender.com">
-<title>ตำนานเอลโดเรีย v4.53</title>
+<title>ตำนานเอลโดเรีย v4.54</title>
 <style>
 :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#f3efe6;--fg:#2b2a26;--card:#fff;--bd:#cfc8b8}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1d1c19;--fg:#ece7da;--card:#2a2925;--bd:#4a4740}}
@@ -3458,6 +3458,7 @@ Object.assign(SFX,{
   else{nz(.08,.1,900*p,300,1,'lowpass');nz(.05,.04,3000,1800,1.5,'bandpass',.02)}}});
 // ใส่ตำแหน่งให้เสียงของมอน/รถม้า
 {const _uc=updCarts;updCarts=function(dt){const s0=sfx;sfx=(n)=>{if(n==='hoof'){const c=D.carts.reduce((a,b)=>Math.hypot(b.x-P.x,b.y-P.y)<Math.hypot(a.x-P.x,a.y-P.y)?b:a);s0(n,c.x,c.y)}else s0(n)};try{_uc(dt)}finally{sfx=s0}}}
+function wall50(x0,y0,x1,y1){if(typeof zHit!=='function')return false;const d=Math.hypot(x1-x0,y1-y0),n=Math.ceil(d/8);let run=0;for(let i=2;i<n-1;i++){const u=i/n;if(zHit(x0+(x1-x0)*u,y0+(y1-y0)*u)){if(++run>=2)return true}else run=0}return false}
 {const _um=updMob;updMob=function(m,dt){const s0=sfx,a0=m.aggro;sfx=(n,x,y)=>s0(n,x===undefined?m.x:x,x===undefined?m.y:y);try{_um(m,dt)}finally{sfx=s0}
  if(!a0&&m.aggro&&!m.dead){sfx(m.boss?'roar':m.f==='bat'?'screech':'growl',m.x,m.y);if(m.boss)shake(5,.5)}}}
 {const _w0=updWorld;updWorld=function(dt){const n0=falling.filter(f=>f.landed).length;_w0(dt);updChips(dt);const n1=falling.filter(f=>f.landed).length;if(n1>n0){sfx('fall');shake(4,.25)}}}
@@ -13439,6 +13440,71 @@ for(const id in ITEMS){const it=ITEMS[id];if(it&&it.kind&&!(it.kind in GWB))GWB[
 {const _bw=bagWeight;bagWeight=function(){let w=NaN;try{w=_bw()}catch(e){}if(Number.isFinite(w))return w;let s=0;const g=id=>{let v=NaN;try{v=ITEMS[id]?gearW(id):NaN}catch(e){}return Number.isFinite(v)?v:1};
  for(const k in WT){const v=(inv[k]||0)*WT[k];if(Number.isFinite(v))s+=v}for(const id in GEAR){const n=+GEAR[id]||0;s+=n*g(id)}for(const k in P.armor)if(P.armor[k])s+=g(P.armor[k]);return Math.round(s*10)/10};window.bagWeight=bagWeight}
 }catch(e){console.warn('fix47',e)}
+</script>
+<script>
+// fix48 (v4.54) — NPC มีตารางชีวิต: ไม่เดินเตร่ไปมาแล้ว · กลางวัน (05:30–21:00) ยืนประจำจุดทำงาน หันหน้าหาผู้เล่น
+//   กลางคืน (21:00–05:30) ชาวเมืองทั่วไปนอนหลับ ณ จุดประจำ (วาดนอนราบ + 💤) — แตะคุยได้ ตื่นมาคุย/ส่งเควสได้ปกติ แล้วหลับต่อ
+//   คนสำคัญไม่นอน: ทหารยาม · นักบวชแห่งแสง · ปรมาจารย์อาชีพ · NPC ที่แพตช์อื่นเพิ่ม (ไม่อยู่ใน NPC_DATA เดิม)
+try{
+try{let mv=0;for(const l of LAMP_DATA)if(l[0]===31&&l[1]===23){l[0]=29;mv=1}if(mv&&D&&D.town&&!D.shop){buildTown();mkMini(dcv,TW,TH,2.6)}}catch(e){console.warn('fix48 lamp',e)}// โคมไฟบังป้ายธนาคาร → ขยับซ้าย
+const ESS48=new Set(['ทหารยาม','นักบวชแห่งแสง','ปรมาจารย์อาชีพ']);
+const BASE48=new Set(NPC_DATA.map(n=>n.name));
+const WORK48={'พ่อค้า':['📦 จัดของอยู่','ของใหม่มาถึงแล้ว!'],'นักดื่ม':['🍺 อึก…','เบียร์อีกแก้ว!'],'ชาวบ้าน':['🧹 กวาดลานบ้าน','อากาศดีจัง'],'เด็กน้อย':['🪀 เล่นอยู่','ฮึบ! ฮึบ!'],
+ 'ชาวนา':['🌾 ดูแลไร่','ฝนจะตกไหมน้า'],'หญิงสาว':['🌸 รดน้ำดอกไม้','สวยจัง'],'ช่างตีเหล็ก':['🔨 เคร้ง! เคร้ง!','เหล็กร้อนได้ที่'],'นักเดินทาง':['🗺️ ดูแผนที่','ทางไหนดีน้า'],
+ 'แม่ค้าผัก':['🥬 ผักสดจ้า!'],'แม่ค้าผลไม้':['🍎 ผลไม้หวานจ้า!'],'คนขายขนมปัง':['🍞 อบใหม่ ๆ จ้า!'],'ลุงขายผัก':['🎃 ฟักทองหัวโต!']};
+const night48=()=>{const h=((DAY.t%24)+24)%24;return h>=21||h<5.5};
+window.night48=night48;
+const ess48=n=>ESS48.has(n.name)||!BASE48.has(n.name)||n.hat==='crown';
+// จุดประจำใหม่ (ช่อง) — เดิมยืนขวางประตูร้าน: ชาวนาหน้าธนาคาร · นักเดินทางหน้าร้านอาวุธ
+const POST48={'ชาวนา':[5.5,31.6],'นักเดินทาง':[3.5,18.6]};
+const SHORT48={'ทหารยามโรแลนด์':'ยามโรแลนด์','ทหารยามการ์ธ':'ยามการ์ธ'};
+const VEND48=new Set(['แม่ค้าผัก','แม่ค้าผลไม้','คนขายขนมปัง','ลุงขายผัก']);
+function init48(n){if(n.i48)return;n.i48=1;n.ess48=ess48(n);n.fixed=1;n.tg=null;const po=POST48[n.name];if(po)n.home={x:po[0]*T,y:po[1]*T};
+ if(n.dn&&SHORT48[n.dn])n.dn=SHORT48[n.dn];if(n.home){n.x=n.home.x;n.y=n.home.y}n.wk48=4+Math.random()*10}
+// ป้ายชื่อ + เครื่องหมายเควส วาดเอง (ใช้กับคนหลับ และแม่ค้าที่ป้ายชื่อเดิมทับป้ายแผง)
+function lab48(n,nm,dn,x,y,z){ctx.save();ctx.font='bold 10px system-ui,sans-serif';ctx.textAlign='center';ctx.fillStyle='#fff';ctx.shadowColor='rgba(0,0,0,.9)';ctx.shadowOffsetX=ctx.shadowOffsetY=1;if(!z||Math.hypot(P.x-x,P.y-y)<110)ctx.fillText((dn||nm)+(z?' 💤':''),x,y);
+ let q=null;try{q=typeof sideOf==='function'?sideOf(nm):null}catch(e){}
+ if(q){const s2=HOME.side[q.id],m=!s2?'!':sideProg(q)?'?':'';if(m){ctx.shadowColor='transparent';ctx.font='bold 16px system-ui';ctx.lineWidth=3;ctx.strokeStyle='#3a2a06';ctx.strokeText(m,x,y-14);ctx.fillStyle=m==='!'?'#ffd84a':'#8fe08a';ctx.fillText(m,x,y-14)}}ctx.restore()}
+{const _u=updNPCs;updNPCs=function(dt){
+ if(D&&D.npcs){const ng=night48();for(const n of D.npcs){init48(n);if(n.wake48>0)n.wake48-=dt;
+  const s=!!(D.town&&ng&&!n.ess48&&!(n.wake48>0)&&!(DLG&&DLG.open&&DLG.n===n));
+  if(s&&!n.slp){n.bub=null}n.slp=s;
+  if(n.home){const ty=n.home.y;if(Math.hypot(n.x-n.home.x,n.y-ty)>2){n.x=n.home.x;n.y=ty}}
+  if(!s){const dp=Math.hypot(P.x-n.x,P.y-n.y);if(dp<60){const dx=P.x-n.x,dy=P.y-n.y;n.dir=Math.abs(dx)>Math.abs(dy)?(dx<0?'l':'r'):(dy<0?'u':'d')}
+   else if(dp<260&&!n.bub&&(n.wk48-=dt)<=0){n.wk48=10+Math.random()*14;const L=WORK48[n.name];if(L)n.bub={txt:L[Math.random()*L.length|0],t:2.4}}}}}
+ _u(dt)};window.updNPCs=updNPCs}
+// วาดตอนหลับ: เสื่อ + ตัวนอนราบ + 💤
+{const _dn=drawNPC;drawNPC=function(n,t){if(!n.slp){if(VEND48.has(n.name)&&!(DLG&&DLG.open&&DLG.n===n)&&D&&D.town){const nm=n.name,dn=n.dn;n.name=' ';n.dn=' ';try{_dn(n,t)}finally{n.name=nm;n.dn=dn}lab48(n,nm,dn,Math.round(n.x),Math.round(n.y)-86);return}return _dn(n,t)}const x=Math.round(n.x),y=Math.round(n.y);
+ ctx.save();ctx.fillStyle='rgba(0,0,0,.25)';ctx.beginPath();ctx.ellipse(x-14,y+1,24,6,0,0,7);ctx.fill();
+ ctx.fillStyle='#7a4a3a';ctx.fillRect(x-38,y-8,46,12);ctx.fillStyle='#c9b48a';ctx.fillRect(x-38,y-8,10,12);
+ ctx.fillStyle='#4a6a9a';ctx.fillRect(x-28,y-9,36,13);ctx.restore();
+ const mv=n.mv,bub=n.bub,nm=n.name,dn=n.dn;n.mv=false;n.bub=null;n.name=' ';n.dn=' ';ctx.save();ctx.translate(x,y);ctx.rotate(-Math.PI/2);ctx.translate(-x,-y);try{_dn(n,0)}catch(e){}ctx.restore();n.mv=mv;n.bub=bub;n.name=nm;n.dn=dn;
+ lab48(n,nm,dn,x-14,y-22,1);
+ ctx.save();ctx.fillStyle='#4a6a9a';ctx.fillRect(x-24,y-8,30,11);ctx.restore();
+ const k=(t*.6+(n.home?n.home.x:0)*.01)%1;ctx.save();ctx.globalAlpha=1-k;ctx.font='bold '+(10+k*6|0)+'px system-ui';ctx.textAlign='center';ctx.fillStyle='#cfe3ff';ctx.strokeStyle='#1a2440';ctx.lineWidth=3;
+ const zx=x-30+k*10,zy=y-16-k*22;ctx.strokeText('z',zx,zy);ctx.fillText('z',zx,zy);ctx.restore()};window.drawNPC=drawNPC}
+// คุยตอนหลับ = ปลุก (คุย/ส่งเควสได้ตามปกติ) แล้วหลับต่อเองภายหลัง
+{const _nt=npcTalk;npcTalk=function(n){if(n&&n.slp){n.slp=false;n.wake48=12}else if(n&&!n.ess48&&D&&D.town&&night48())n.wake48=12;return _nt(n)};window.npcTalk=npcTalk}
+}catch(e){console.warn('fix48',e)}
+</script>
+<script>
+// fix49 (v4.54) — เควสต้องไม่ติด: บท 15 (ตลาด) และบท 16 (บอสโลก) เดิมต้องรอผู้เล่นอื่น/ต้องให้บอสตายก่อน → ผู้เล่นที่อยู่คนเดียวทำต่อไม่ได้
+//   บท 15: เปิดแผงขายของในตลาดกลาง (มีของบนแผง) ก็นับว่าสำเร็จ · บท 16: ลงมือตีบอสโลก (ส่งดาเมจขึ้นเซิร์ฟเวอร์) ก็นับว่าร่วมปราบแล้ว
+try{
+{const i=STCH.findIndex(c=>c.ch11&&/ตลาด/.test(c.t));if(i>=0)STCH[i].d='ไปตลาดกลาง แล้วเปิดแผงขายของ หรือซื้อ/ขายกับผู้เล่นคนอื่น 1 ครั้ง'}
+{const i=STCH.findIndex(c=>c.ch11&&/บอสโลก/.test(c.d));if(i>=0)STCH[i].d='ร่วมตีบอสโลก 1 ครั้ง (ปรากฏ 12:00 และ 20:00 น.)'}
+setInterval(()=>{try{if(!(STORY.mk11)&&typeof STALL10!=='undefined'&&STALL10.open&&STALL10.items&&STALL10.items.length){STORY.mk11=1;saveStory()}}catch(e){}},1000);
+{const _s=WebSocket.prototype.send;WebSocket.prototype.send=function(d){try{if(!STORY.wb11&&typeof d==='string'&&d.startsWith('{"t":"wbhit"')){STORY.wb11=1;saveStory()}}catch(e){}return _s.apply(this,arguments)}}
+}catch(e){console.warn('fix49',e)}
+</script>
+<script>
+// fix50 (v4.54) — ดันเจี้ยนต้องลงได้ทุกชั้นไม่ติด: กุญแจจากบอสเข้ากระเป๋าทันที (เดิมตกพื้น → ถ้าไม่ได้เก็บ/ตาย/ออกก่อน = ลงต่อไม่ได้)
+try{
+{const _ad=addDrop;addDrop=function(type,x,y){if(type==='dgkey'&&D&&D.dg){inv.dgkey=(inv.dgkey|0)+1;try{refreshInv();saveGame(true)}catch(e){}
+  try{dmgTxt(x,y-40,'🗝️ +1 กุญแจ','#ffd84a',true)}catch(e){}return}return _ad.apply(this,arguments)};window.addDrop=addDrop}
+// ฟันธรรมดา (รวมท่าฟันต่อท้ายสกิลพุ่ง) ห้ามทะลุกำแพงบาง 1 ช่อง — ถ้ามีกำแพงคั่น ให้ข้ามมอนตัวนั้นในจังหวะฟันนี้
+{const _um=updMob;updMob=function(m,dt){try{if(m&&P.tool==='sword'&&P.at>=0&&P.at<1&&m.last!==atkId&&D&&D.zone&&Math.abs(m.x-P.x)<110&&Math.abs(m.y-P.y)<110&&wall50(P.x,P.y-6,m.x,m.y-6))m.last=atkId}catch(e){}return _um.apply(this,arguments)};window.updMob=updMob}
+}catch(e){console.warn('fix50',e)}
 </script>
 </body>
 </html>
