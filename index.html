@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#1a1226"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><link rel="apple-touch-icon" href="icon-192.png"><meta name="eldoria-server" content="wss://eldoria-online.onrender.com">
-<title>ตำนานเอลโดเรีย v4.42</title>
+<title>ตำนานเอลโดเรีย v4.43</title>
 <style>
 :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#f3efe6;--fg:#2b2a26;--card:#fff;--bd:#cfc8b8}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1d1c19;--fg:#ece7da;--card:#2a2925;--bd:#4a4740}}
@@ -1932,7 +1932,7 @@ const EQ={w:[{n:'ดาบไม้ฝึกหัด',a:0},{n:'ดาบเห�
 const ATK=()=>Math.round((window.atkMul?atkMul():1)*(1+(P.armor.sword?SWATK[P.tier.sword]+(window.enhAtk?enhAtk(ENH[P.armor.sword]||0):(ENH[P.armor.sword]||0)):0)+(window.PRIM10?PRIM10():P.stats.str)+ringAtk()+((P.lv-1)>>1))),DEF=()=>armorDef()+(P.stats.vit>>1)+((P.lv-1)>>2),need=l=>Math.round((20+l*l*12)*(l<20?1:1+(l-20)/40));
 const lvBox=document.getElementById('coinbox');lvBox.style.whiteSpace='nowrap';lvBox.insertAdjacentHTML('beforeend',' · ⭐Lv.<b id="lvhud">1</b> <small id="xphud"></small>');
 function lvHud(){document.getElementById('lvhud').textContent=P.lv;document.getElementById('xphud').textContent=P.xp+'/'+need(P.lv)}
-function gainXp(n){P.xp+=n;let up=0;while(P.xp>=need(P.lv)&&P.lv<99){P.xp-=need(P.lv);P.lv++;up=1}
+function gainXp(n){P.xp+=n;let up=0;while(P.xp>=need(P.lv)&&P.lv<(typeof MAXLV!=='undefined'?MAXLV:150)){P.xp-=need(P.lv);P.lv++;up=1}
  if(up){BAL.hp=100+(P.lv-1)*15;BAL.mp=50+(P.lv-1)*5;P.hp=BAL.hp;P.mp=BAL.mp;sfx('heal');say('⭐ เลเวลอัป! Lv.'+P.lv+' เลือดสูงสุด '+BAL.hp+' โจมตี '+ATK())}else say('+'+n+' XP');lvHud();refreshInv()}
 dropLoot=function(x,y,sl){const lv=(sl&&sl.lv)||1,n=1+(Math.random()<.4?1:0),c=1+Math.floor(Math.random()*3)+(lv>>1);for(let i=0;i<n;i++)addDrop('gel',x,y);for(let i=0;i<c;i++)addDrop('coin',x,y);if(sl)setTimeout(()=>gainXp(5*lv),30)};
 const _dsl=drawSlime;drawSlime=function(s){const k=1+((s.lv||1)-1)*.07;if(k>1){ctx.save();ctx.translate(s.x,s.y);ctx.scale(k,k);ctx.translate(-s.x,-s.y);_dsl(s);ctx.restore()}else _dsl(s);
