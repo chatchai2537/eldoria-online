@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#1a1226"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><link rel="apple-touch-icon" href="icon-192.png"><meta name="eldoria-server" content="wss://eldoria-online.onrender.com">
-<title>ตำนานเอลโดเรีย v4.47</title>
+<title>ตำนานเอลโดเรีย v4.48</title>
 <style>
 :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#f3efe6;--fg:#2b2a26;--card:#fff;--bd:#cfc8b8}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1d1c19;--fg:#ece7da;--card:#2a2925;--bd:#4a4740}}
@@ -12863,7 +12863,7 @@ const SK41={
  monk:[
   {n:'ก้าวเมฆา',e:'☁️',lv:50,price:5000,mp:14,cd:6,new:1,d:'พุ่งไปหาศัตรูใกล้สุด (ระยะ 220) เตะลงพื้นเกิดคลื่นกระแทก ×1.8 ทุกตัวรอบจุดตก (วง 110) · ถ้าฆ่าได้ คูลดาวน์รีเซ็ตทันที'},
   {n:'กายวัชระ',e:'🔶',lv:75,price:12000,mp:30,cd:20,new:1,d:'6 วิ: ลดดาเมจที่รับ 35% · ทุกครั้งที่โดนตี สวนกลับรอบตัว ×0.8 (วง 110)'},
-  {n:'หมัดเทพสังหาร',e:'✊',lv:100,price:30000,mp:65,cd:28,new:1,d:'ชาร์จ 0.5 วิ ปล่อยหมัดพลังมังกรเป็นแนวตรง ทะลุทุกตัว ×5.0 (ยาว 360) ปลายทางระเบิดเป็นวง ×2.0 (วง 140)'}]};
+  {n:'หมัดเทพสังหาร',e:'✊',lv:100,price:30000,mp:65,cd:28,new:1,d:'ชาร์จ 0.5 วิ ปล่อยหมัดพลังมังกรเป็นแนวตรง ทะลุทุกตัว ×5.0 (ยาว 280) ปลายทางระเบิดเป็นวง ×2.0 (วง 120)'}]};
 const PAS41={
  monk:[{lv:40,n:'⚡ คอมโบลมปราณ',d:'ตีโดน +1 คอมโบ (สูงสุด 30) · คอมโบละดาเมจ +1% · ไม่ตี 3 วิ คอมโบหาย',sk41:1},
   {lv:70,n:'⚡ จังหวะไหลเวียน',d:'ใช้สกิลต่างกัน 3 ท่าภายใน 5 วิ ฟื้นมานา 15%',sk41:1},
@@ -12885,7 +12885,7 @@ NEWSK.monk=[
   if(k>0){B41.reset=3;setTimeout(()=>{try{say('☁️ ก้าวเมฆา: รีเซ็ตคูลดาวน์!')}catch(_){}},10)}},
  ()=>{B41.vajra={t:0,l:6,cd:0};B41.lastHp=P.hp;ring25(P.x,P.y,'255,200,100',90,.5);pt25(P.x,P.y-16,18,'255,210,120',90,2.4,'spark');sfx('warp')},
  ()=>{B41.charge={t:0,l:.5};P.cast=.55;sfx('warp');ring25(P.x,P.y,'255,170,80',50,.5)}];
-function fist41(){const dv=aimDir(360),L=360,sx=P.x,sy=P.y-12;P.at=0;P.cmb=2;P.draw=true;
+function fist41(){const dv=aimDir(280),L=280,sx=P.x,sy=P.y-12;P.at=0;P.cmb=2;P.draw=true;
  line25(dv,L,34,e=>hurtE(e,5.0,{kb:260,col:'#ffb46a'}));
  let ex=sx,ey=sy;for(let d=0;d<=L;d+=12){const nx=sx+dv[0]*d,ny=sy+dv[1]*d;if(typeof hit==='function'&&hit(nx,ny+12))break;ex=nx;ey=ny}
  ef41({k:'dfist',x:sx,y:sy,dx:dv[0],dy:dv[1],ex,ey,l:.65,boom:0});shake(6,.3);try{flash('#ffb46a',.18)}catch(_){}sfx('swing2');sfx('warp')}
@@ -12898,7 +12898,7 @@ function fist41(){const dv=aimDir(360),L=360,sx=P.x,sy=P.y-12;P.at=0;P.cmb=2;P.d
   if(V.t>=V.l||P.dead)B41.vajra=null}
  const C=B41.charge;if(C){C.t+=dt;if(P.dead||P.stun>0){B41.charge=null}else if(C.t>=C.l){B41.charge=null;fist41()}}
  for(let i=E41.length-1;i>=0;i--){const e=E41[i];e.t+=dt;
-  if(e.k==='dfist'&&!e.boom&&e.t>=.3){e.boom=1;hitAll41(e.ex,e.ey+12,140,2.0,{kb:220,stun:.5,col:'#ffcf7a'});ring25(e.ex,e.ey+12,'255,180,90',140,.5);pt25(e.ex,e.ey,26,'255,190,100',170,3,'spark');shake(7,.3);sfx('thud');sfx('crumble')}
+  if(e.k==='dfist'&&!e.boom&&e.t>=.3){e.boom=1;hitAll41(e.ex,e.ey+12,120,2.0,{kb:220,stun:.5,col:'#ffcf7a'});ring25(e.ex,e.ey+12,'255,180,90',120,.5);pt25(e.ex,e.ey,26,'255,190,100',170,3,'spark');shake(7,.3);sfx('thud');sfx('crumble')}
   if(e.t>=e.l)E41.splice(i,1)}
  B41.lastHp=P.hp}catch(e){}}}
 // ---------- พาสซีฟเสริมสกิล: ดาเมจ ----------
@@ -12923,7 +12923,7 @@ function draw41(){const t=performance.now()/1000;ctx.save();
    ctx.lineCap='round';for(const [w,c] of [[30,'255,120,40,'+(.25*a)],[16,'255,190,90,'+(.55*a)],[6,'255,250,220,'+a]]){ctx.strokeStyle='rgba('+c+')';ctx.lineWidth=w;ctx.beginPath();ctx.moveTo(e.x,e.y);
     for(let s=0;s<=1.0001;s+=.1){const px=e.x+(hx-e.x)*s,py=e.y+(hy-e.y)*s,wv=Math.sin(s*9-t*18)*8*(1-s*.3);ctx.lineTo(px-Math.sin(ang)*wv,py+Math.cos(ang)*wv)}ctx.stroke()}
    const g=ctx.createRadialGradient(hx,hy,0,hx,hy,34);g.addColorStop(0,'rgba(255,250,220,'+a+')');g.addColorStop(.4,'rgba(255,170,70,'+(.8*a)+')');g.addColorStop(1,'rgba(255,90,20,0)');ctx.fillStyle=g;ctx.fillRect(hx-34,hy-34,68,68);
-   if(e.boom){const v=(e.t-.3)/(e.l-.3),R=140*Math.min(1,v*2);ctx.strokeStyle='rgba(255,200,110,'+(1-v)+')';ctx.lineWidth=8*(1-v)+1;ctx.beginPath();el25(e.ex,e.ey+12,R,R*.6,0,0,7);ctx.stroke();const b=ctx.createRadialGradient(e.ex,e.ey,0,e.ex,e.ey,R);b.addColorStop(0,'rgba(255,230,160,'+(.5*(1-v))+')');b.addColorStop(1,'rgba(255,140,40,0)');ctx.fillStyle=b;ctx.fillRect(e.ex-R,e.ey-R,R*2,R*2)}}
+   if(e.boom){const v=(e.t-.3)/(e.l-.3),R=120*Math.min(1,v*2);ctx.strokeStyle='rgba(255,200,110,'+(1-v)+')';ctx.lineWidth=8*(1-v)+1;ctx.beginPath();el25(e.ex,e.ey+12,R,R*.6,0,0,7);ctx.stroke();const b=ctx.createRadialGradient(e.ex,e.ey,0,e.ex,e.ey,R);b.addColorStop(0,'rgba(255,230,160,'+(.5*(1-v))+')');b.addColorStop(1,'rgba(255,140,40,0)');ctx.fillStyle=b;ctx.fillRect(e.ex-R,e.ey-R,R*2,R*2)}}
   ctx.restore()}
  // ออร่ากายวัชระ: หกเหลี่ยมทองหมุนรอบตัว
  if(B41.vajra){const V=B41.vajra,p=.6+.25*Math.sin(t*8),fade=Math.min(1,(V.l-V.t)*2);ctx.globalCompositeOperation='lighter';ctx.strokeStyle='rgba(255,210,120,'+(p*fade)+')';ctx.lineWidth=2.5;
@@ -13161,6 +13161,25 @@ const backNear42=()=>{const Z=D&&D.zone;if(!Z||D.dg)return false;const i=chIdx42
   if(performance.now()>EX42.cd&&P.mv&&P.dir==='l'&&gateNear42(26))go42(nx,'ent')}}
  }catch(_){}_h()}}
 }catch(e){console.warn('fix42',e)}
+</script>
+<script>
+// fix43 (v4.48) — จัดระยะโจมตีให้ลงตัวตามบทบาท: ประชิด ~67 · ทวน 105 · คทา 280–300 · ธนู 360 · ไรเฟิล 440
+// (แก้ในที่ fix41: หมัดเทพสังหาร ยาว 360→280 · วงระเบิด 140→120 — มังค์เป็นสายประชิด ไม่ควรตีไกลกว่าสายยิง)
+try{
+const RNG43={mage:300,cleric:280,necro:280,summoner:280,none:280,archer:360,sniper:440};
+// ยิงธรรมดา: ระยะตามอาชีพ (เดิม คทา 260 · ธนู/ไรเฟิล 320 ทุกอาชีพ)
+{const _sh=shoot;shoot=function(kind,o){try{if(o&&!o.dv&&((kind==='bolt'&&o.range===260&&o.mult===1)||(kind==='arrow'&&o.range===320&&o.mult===.95))){const r=RNG43[P.cls]||(kind==='bolt'?280:360);o=Object.assign({},o,{range:r});if(P.cls==='sniper'&&kind==='arrow')o.sp=760}}catch(e){}return _sh.call(this,kind,o)};window.shoot=shoot}
+// พายุดาบ (นักดาบ): รัศมี 64 → 90 ให้สมกับสกิล Lv.30
+{const _ei=eachIn;eachIn=function(x,y,r,fn){if(P&&P.ww&&r===64&&P.cls==='sword')r=90;return _ei.call(this,x,y,r,fn)};window.eachIn=eachIn}
+// อัศวินมังกร: ทวนยาว — ฟันธรรมดาโดนไกลถึง 105 (เดิมเท่าดาบ ~67 ทั้งที่คำอธิบายบอกว่ายาวกว่า)
+{const _st=skTick;skTick=function(dt){_st(dt);try{
+ if(P.cls!=='dragoon'||P.dead||P.tool!=='sword'||!P.armor.sword||isRng()||P.cmb===2||!(P.at>.2&&P.at<.7))return;
+ const v=DIRV[P.dir];for(const e of enemies()){if(e.dead||e.last===atkId)continue;const dx=e.x-P.x,dy=(e.y-10)-(P.y-8),along=dx*v[0]+dy*v[1],perp=Math.abs(dx*v[1]-dy*v[0]);
+  if(along>20&&along<105+eR(e)*.6&&perp<22+eR(e)*.6){e.last=atkId;hurtE(e,1,{kb:140})}}}catch(e){}}}
+// คำอธิบายอาชีพให้ตรงระยะจริง
+try{CLS.dragoon.pas=(CLS.dragoon.pas||'').replace('ระยะฟันยาวขึ้น','ทวนยาว ฟันธรรมดาโดนไกล 105')}catch(e){}
+try{CLS.sniper.d=(CLS.sniper.d||'')+' · ยิงไกลที่สุดในเกม (440)'}catch(e){}
+}catch(e){console.warn('fix43',e)}
 </script>
 </body>
 </html>
