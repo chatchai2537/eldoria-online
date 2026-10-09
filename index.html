@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#1a1226"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><link rel="apple-touch-icon" href="icon-192.png"><meta name="eldoria-server" content="wss://eldoria-online.onrender.com">
-<title>ตำนานเอลโดเรีย v4.50</title>
+<title>ตำนานเอลโดเรีย v4.51</title>
 <style>
 :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#f3efe6;--fg:#2b2a26;--card:#fff;--bd:#cfc8b8}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1d1c19;--fg:#ece7da;--card:#2a2925;--bd:#4a4740}}
@@ -13060,12 +13060,14 @@ function twrArt42(){const W=200,H=300,c=document.createElement('canvas');c.width
  // ป้ายชื่อ
  k.fillStyle='#2a1a3a';k.strokeStyle='#d8a83a';k.lineWidth=2;const pw=96;k.fillRect(cx-pw/2,dy0-26,pw,17);k.strokeRect(cx-pw/2,dy0-26,pw,17);k.fillStyle='#ffe9a0';k.font='bold 11px system-ui,"Noto Sans Thai",sans-serif';k.textAlign='center';k.fillText('🗼 หอคอยบอส',cx,dy0-13);
  return c}
-{const _bt=buildTown;buildTown=function(){_bt();try{const k=dcv.getContext('2d'),{bx,by,bw,bh}=TWR42;
+function twrPlace42(){if(!(D&&D.town&&dcv)||D.twr42)return;D.twr42=1;try{const k=dcv.getContext('2d'),{bx,by,bw,bh}=TWR42;
   for(let y=by-1;y<by+bh+1;y++)for(let x=bx-1;x<bx+bw+1;x++){if(D.road&&D.road.has(y*TW+x))continue;if(x<0||y<0||x>=TW||y>=TH)continue;k.drawImage(grassV[gv(x,y)],x*T,y*T)}
   for(let y=by;y<by+bh;y++)for(let x=bx;x<bx+bw;x++)if(dm[y])dm[y][x]=1;
   if(!TWR42.art)TWR42.art=twrArt42();const A=TWR42.art,x0=TWR42.dx-A.width/2,y0=TWR42.dy+8-A.height;
   if(window.prop){prop(kk=>kk.drawImage(A,x0,y0),TWR42.dy+6,x0,y0,A.width,A.height);const pr=TOWNPROPS[TOWNPROPS.length-1];if(D.stalls&&pr&&!D.stalls.includes(pr))D.stalls.push(pr)}else k.drawImage(A,x0,y0);
-  try{mkMini(dcv,TW,TH,2.6)}catch(e){}}catch(e){console.warn('[twr42]',e)}}}
+  try{mkMini(dcv,TW,TH,2.6)}catch(e){}}catch(e){console.warn('[twr42]',e)}}
+// v4.51: เมืองที่สร้างก่อนแพตช์นี้โหลด (เข้าเกมครั้งแรก) ไม่มีหอคอย → วางซ้ำได้ทุกเมื่อแบบไม่ซ้อน (D.twr42)
+{const _bt=buildTown;buildTown=function(){_bt();twrPlace42()}}setInterval(()=>{try{twrPlace42()}catch(e){}},1000);
 const twrNear42=()=>D&&D.town&&Math.abs(P.x-TWR42.dx)<30&&P.y>TWR42.dy-6&&P.y<TWR42.dy+34;
 {const _it=interact;interact=function(){if(twrNear42()){try{openTower10()}catch(e){}return true}return _it.apply(this,arguments)}}
 
