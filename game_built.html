@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#1a1226"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><link rel="apple-touch-icon" href="icon-192.png"><meta name="eldoria-server" content="wss://eldoria-online.onrender.com">
-<title>ตำนานเอลโดเรีย v4.49</title>
+<title>ตำนานเอลโดเรีย v4.50</title>
 <style>
 :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#f3efe6;--fg:#2b2a26;--card:#fff;--bd:#cfc8b8}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1d1c19;--fg:#ece7da;--card:#2a2925;--bd:#4a4740}}
@@ -13206,6 +13206,12 @@ const minF44=()=>{const n=MIN.length;return n<=1?1:Math.min(1,Math.pow(1.8/n,.7)
 // คำอธิบายในหน้าต่างสกิล/อาชีพ
 try{CLS.necro.pas=(CLS.necro.pas||'')+' · โครงกระดูกมีเลือด ตายได้';CLS.summoner.pas=(CLS.summoner.pas||'').replace('สัตว์อัญเชิญแรงขึ้น 30%','สัตว์อัญเชิญแรงขึ้น 30% · สัตว์มีเลือด ตายได้ · ยิ่งเรียกมาก ดาเมจต่อตัวยิ่งลด')}catch(e){}
 }catch(e){console.warn('fix44',e)}
+</script>
+<script>
+// fix45 (v4.50) — ป้ายเวอร์ชันมุมขวาล่างหน้าแรกเดิมเขียนตายตัว 'v4.42' → ดึงเลขจริงจาก <title> ทุกครั้ง (ไม่ต้องแก้มืออีก)
+try{const VER45=(document.title.match(/v[\d.]+/)||[''])[0];window.GAME_VER=VER45;
+ const fixVer45=()=>{try{const v=titleEl&&titleEl.querySelector('.ver');if(v&&VER45&&v.textContent.indexOf(VER45)<0)v.textContent=VER45+' · ออนไลน์'}catch(e){}};
+ fixVer45();setInterval(()=>{if(!titleEl.hidden)fixVer45()},500)}catch(e){console.warn('fix45',e)}
 </script>
 </body>
 </html>
