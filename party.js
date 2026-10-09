@@ -17,6 +17,7 @@ function leave(p, why) { const pt = p.party && parties.get(p.party); p.party = 0
   push(pt); }
 function tick() { for (const pt of parties.values()) push(pt); }
 // เจ้าของฉาก (โฮสต์มอน) = ผู้เล่นที่อยู่ในฉากนั้นนานสุด
+const FX_K = new Set(['fx', 'pj', 'pe', 'sk']);
 const hostOf = new Map(); // sc -> id
 function hostFor(sc, list) { if (!sc || /^(town|shop|market|wboss|arena|duel|home|tower)/.test(sc)) return 0;
   let h = hostOf.get(sc); if (h && list.some(p => p.id === h)) return h; h = list.length ? list.reduce((a, b) => (a.scT || 0) <= (b.scT || 0) ? a : b).id : 0; hostOf.set(sc, h); return h; }
@@ -26,7 +27,9 @@ function onMsg(p, d, now) {
     const k = String(d.k || ''); if (!RELAY_K.has(k) || !p.sc || !p.joined) return true;
     d.from = p.id; d.sc = p.sc; const s = JSON.stringify(d);
     if (d.to) { const o = byId(d.to); if (o && o.sc === p.sc && o.ws.readyState === 1) o.ws.send(s); return true; }
-    for (const o of H.players.values()) if (o !== p && o.sc === p.sc && o.joined && o.ws.readyState === 1) o.ws.send(s);
+    // v4.47: เอฟเฟกต์สกิล/กระสุนผู้เล่น (ภาพล้วน) ส่งเฉพาะคนในระยะ 1400px · ข้อมูลมอนร่วมยังส่งทั้งฉาก
+    const near = FX_K.has(k) && p.st ? 1400 * 1400 : 0;
+    for (const o of H.players.values()) if (o !== p && o.sc === p.sc && o.joined && o.ws.readyState === 1) { if (near && o.st) { const ex = o.st.x - p.st.x, ey = o.st.y - p.st.y; if (ex * ex + ey * ey > near) continue; } o.ws.send(s); }
     return true; }
   if (d.t === 'pinv') { const to = H.findByName(H.clean(d.name, 14)); if (!to || to === p) { H.send(p, { t: 'sys', txt: '👥 ไม่พบผู้เล่นชื่อนี้ที่ออนไลน์' }); return true; }
     if (to.party) { H.send(p, { t: 'sys', txt: '👥 ' + to.name + ' อยู่ในปาร์ตี้อื่นแล้ว' }); return true; }

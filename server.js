@@ -4,7 +4,7 @@
 const http = require('http'), fs = require('fs'), path = require('path');
 const { WebSocketServer } = require('ws');
 const PORT = process.env.PORT || 8787;
-const MAX_PLAYERS = +process.env.MAX_PLAYERS || 200, MAX_PER_IP = +process.env.MAX_PER_IP || 4;
+const MAX_PLAYERS = +process.env.MAX_PLAYERS || 1000, MAX_PER_IP = +process.env.MAX_PER_IP || 4;
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean);
 const MSG_PER_SEC = 90, TICK_MS = 100, HIST_MAX = 40;
 const BAD = ['ควย','เหี้ย','สัส','เย็ด','fuck','shit','bitch','cunt','nigger'];
@@ -108,9 +108,28 @@ wss.on('connection', (ws, req) => {
   ws.on('close', () => { PARTY.onClose(p); PVP.onClose(p); WORLD.onClose(p); ipCount.set(ip, Math.max(0, (ipCount.get(ip) || 1) - 1)); players.delete(id); broadcast({ t: 'gone', id }); if (p.joined) broadcast({ t: 'sys', txt: p.name + ' ออกจากเกม' }); });
   ws.on('error', () => {});
 });
+// v4.47: ส่งเฉพาะผู้เล่นใกล้ ๆ (AOI) — แต่ละคนได้รายชื่อคนในรัศมี AOI_R (สูงสุด AOI_MAX คนที่ใกล้สุด) + เพื่อนปาร์ตี้เสมอ
+// ตำแหน่งแต่ละคนแปลง JSON ครั้งเดียวต่อรอบ แล้วต่อสตริงเอง (ไม่ stringify ซ้ำต่อผู้รับ) · ห้องที่คนน้อยกว่า AOI_MAX ส่งครบทุกคนเหมือนเดิม
+const AOI_R = +process.env.AOI_R || 1000, AOI_MAX = +process.env.AOI_MAX || 40, AOI_CELL = 600;
+const rawSend = (p, s) => { if (p.ws.readyState === 1) p.ws.send(s); };
 setInterval(() => { const byScene = new Map(); for (const p of players.values()) if (p.st) { if (!byScene.has(p.sc)) byScene.set(p.sc, []); byScene.get(p.sc).push(p); }
-  const n = [...players.values()].filter(p => p.joined).length;
-  for (const p of players.values()) { const list = (byScene.get(p.sc) || []).filter(o => o !== p).map(o => Object.assign({ id: o.id, name: o.name, gtag: o.gtag || '' }, o.st)); send(p, { t: 'snap', on: n, ps: list, h: PARTY.hostFor(p.sc, byScene.get(p.sc) || []) }); }
+  let n = 0; for (const p of players.values()) if (p.joined) n++;
+  const empty = JSON.stringify({ t: 'snap', on: n, ps: [], h: 0 });
+  for (const p of players.values()) if (!p.st) rawSend(p, empty);
+  const R2 = AOI_R * AOI_R, rc = Math.ceil(AOI_R / AOI_CELL);
+  for (const [sc, list] of byScene) {
+    for (const o of list) o._sj = JSON.stringify(Object.assign({ id: o.id, name: o.name, gtag: o.gtag || '' }, o.st));
+    const head = '{"t":"snap","on":' + n + ',"h":' + (PARTY.hostFor(sc, list) | 0) + ',"ps":[';
+    if (list.length <= AOI_MAX + 1) { for (const p of list) { const a = []; for (const o of list) if (o !== p) a.push(o._sj); rawSend(p, head + a.join(',') + ']}'); } continue; }
+    const grid = new Map(), cell = o => Math.floor(o.st.x / AOI_CELL) + ':' + Math.floor(o.st.y / AOI_CELL);
+    for (const o of list) { const k = cell(o); let g = grid.get(k); if (!g) grid.set(k, g = []); g.push(o); }
+    for (const p of list) { const cx = Math.floor(p.st.x / AOI_CELL), cy = Math.floor(p.st.y / AOI_CELL), cand = [], inc = new Set();
+      for (let dy = -rc; dy <= rc; dy++) for (let dx = -rc; dx <= rc; dx++) { const g = grid.get((cx + dx) + ':' + (cy + dy)); if (!g) continue;
+        for (const o of g) { if (o === p) continue; const ex = o.st.x - p.st.x, ey = o.st.y - p.st.y, d2 = ex * ex + ey * ey; if (d2 <= R2) cand.push([d2, o]); } }
+      if (cand.length > AOI_MAX) { cand.sort((a, b) => a[0] - b[0]); cand.length = AOI_MAX; }
+      const a = []; for (const [, o] of cand) { a.push(o._sj); inc.add(o); }
+      if (p.party) for (const o of list) if (o !== p && o.party === p.party && !inc.has(o)) a.push(o._sj);
+      rawSend(p, head + a.join(',') + ']}'); } }
   PARTY.cleanHosts(byScene); }, TICK_MS);
 setInterval(() => { for (const p of players.values()) { if (!p.alive) { p.ws.terminate(); continue; } p.alive = false; try { p.ws.ping(); } catch (e) {} } }, 15000);
 WORLD.init({ players, send, broadcast, ACC, clean, num });
