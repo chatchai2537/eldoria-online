@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#1a1226"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><link rel="apple-touch-icon" href="icon-192.png"><meta name="eldoria-server" content="wss://eldoria-online.onrender.com">
-<title>ตำนานเอลโดเรีย v4.44</title>
+<title>ตำนานเอลโดเรีย v4.45</title>
 <style>
 :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#f3efe6;--fg:#2b2a26;--card:#fff;--bd:#cfc8b8}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1d1c19;--fg:#ece7da;--card:#2a2925;--bd:#4a4740}}
@@ -12541,7 +12541,7 @@ function frame(now){requestAnimationFrame(frame);const dt=Math.min(.05,(now-last
  if(P.at>=0){if(P.tool!=='sword'){ix=iy=0}P.at+=dt/atkDur();if(P.at>=.42&&P.hitDone!==atkId){P.hitDone=atkId;useToolHit()}if(P.at>=1){P.at=-1;P.atEnd=performance.now();if(P.qa){P.qa=0;attack(true)}}}
  if(P.dash>0){dashStep(dt);P.mv=true}
  else{P.mv=!!(ix||iy);
-  if(P.mv){const n=Math.hypot(ix,iy);ix/=n;iy/=n;const sp=(P.at>=0?.4:1)*(isRun()&&P.at<0?170:95)*dt*(.5+.5*am)*(P.fa<=0?.6:1)*(P.hu<=0?.8:1)*(1+.012*P.stats.agi)*CARRY_SPD*(window.spdMul?spdMul():1);
+  if(P.mv){const n=Math.hypot(ix,iy);ix/=n;iy/=n;const sp=(P.at>=0?.4:1)*(isRun()&&P.at<0?170:95)*dt*(.5+.5*am)*(P.fa<=0?.6:1)*(P.hu<=0?.8:1)*(1+.35*(1-Math.exp(-(P.stats.agi||0)/120)))*CARRY_SPD*(window.spdMul?spdMul():1);
    if(P.at<0){if(Math.abs(ix)>Math.abs(iy)||(Math.abs(ix)===Math.abs(iy)&&(P.dir==='l'||P.dir==='r')))P.dir=ix<0?'l':'r';else P.dir=iy<0?'u':'d'}
    moveSlide(ix*sp,iy*sp);
    P.t+=dt*(isRun()?13:8);P.st=(P.st||0)+dt*(isRun()?4.4:3);if(P.st>1){P.st=0;sfx('step');}}
@@ -12569,6 +12569,23 @@ try{const dgHide39=()=>!!(D&&D.dg);
 {const _bm=bigMap;bigMap=function(){if(!dgHide39())return _bm.apply(this,arguments);const b=D.boss;D.boss=null;try{return _bm.apply(this,arguments)}finally{if(D&&D.boss==null)D.boss=b}}}
 {const _gt=guideTarget;guideTarget=function(){const g=_gt.apply(this,arguments);if(g&&dgHide39()&&/บอส/.test(String(g[2]||'')))return null;return g}}
 }catch(e){console.warn('fix39',e)}
+</script>
+<script>
+// fix40 (v4.45) — ดันเจี้ยน: กล่องไม่ดรอปอาวุธ/ชุด/แร่/แท่งแร่แล้ว · ของดรอปลดลง · มอนในเหมือง/ดันเจี้ยนวิ่งไล่ทัน · AGI เพิ่มความเร็วแบบมีเพดาน
+try{
+const NOORE40=new Set(['stone','iron','copper','silver','gold','gem','diamond','ore','ingSt','ingot','ingCu','ingAg','ingAu','ingDm','wood','woodE','woodF','woodS','woodH','woodG']);
+// รางวัลกล่อง: ตัดแร่/แท่งแร่ · เหลือราวครึ่งเดียว (หินตีบวก/ยา/หินพร ยังมีแต่น้อยลง)
+{const _rw=dgReward;dgReward=function(f){const R=_rw(f).filter(k=>!NOORE40.has(k));return R.filter((k,i)=>i===0||Math.random()<.5)}}
+// เปิดกล่อง: ไม่มีอุปกรณ์ (อาวุธ/ชุด) อีกต่อไป — ต้องคราฟเองจากแร่/ไม้
+openChest_=function(){const c=D.chest,f=D.dg;if(!c||c.open)return;c.open=true;sfx('chest');sfx('gem');flash('#ffe9a0',.4);shake(3,.2);
+ for(const k of dgReward(f))addDrop(k,c.x,c.y-6);const coins=Math.round(20*Math.min(f,120)*(.8+Math.random()*.4)*.5);inv.coin+=coins;dmgTxt(c.x,c.y-30,'+'+coins+' 🪙','#ffd84a',true);
+ for(let i=0;i<30;i++)fx.push({x:c.x,y:c.y-10,vx:(Math.random()-.5)*180,vy:-60-Math.random()*130,l:.9,c:'255,216,74'});refreshInv();
+ say('🎁 เปิดกล่องสมบัติชั้น '+f+'! '+(f<DGMAX7()?'ยืนที่กล่องแล้วกด E อีกครั้งเพื่อลงชั้น '+(f+1):'🏆 พิชิตดันเจี้ยนครบแล้ว!'));try{saveX()}catch(e){}};window.openChest_=openChest_;
+// มอนในดันเจี้ยน: ของดรอปเหลือครึ่ง และไม่ดรอปแร่/ไม้
+{const _ad=addDrop;addDrop=function(type,x,y){if(D&&D.dg&&typeof MK31!=='undefined'&&MK31>0&&type!=='coin'){if(NOORE40.has(type)||Math.random()<.5)return}return _ad.apply(this,arguments)};window.addDrop=addDrop}
+// มอนในเหมือง/ดันเจี้ยนวิ่งเร็วขึ้น (ไล่ผู้เล่นทัน)
+{const _mm=mkMob;mkMob=function(){const m=_mm.apply(this,arguments);try{if(m&&m.F&&!m.F.fast40){m.F=Object.assign({},m.F,{fast40:1});m.F.spd=m.boss?m.F.spd*1.3+20:m.F.spd*1.6+40}}catch(e){}return m}}
+}catch(e){console.warn('fix40',e)}
 </script>
 </body>
 </html>
