@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#1a1226"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><link rel="apple-touch-icon" href="icon-192.png"><meta name="eldoria-server" content="wss://eldoria-online.onrender.com">
-<title>ตำนานเอลโดเรีย v4.59</title>
+<title>ตำนานเอลโดเรีย v4.60</title>
 <style>
 :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#f3efe6;--fg:#2b2a26;--card:#fff;--bd:#cfc8b8}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1d1c19;--fg:#ece7da;--card:#2a2925;--bd:#4a4740}}
@@ -14247,6 +14247,164 @@ setInterval(()=>{try{if(P.dead&&AOE62.length)AOE62.length=0}catch(e){}},500);
 // ---------- บอสทั่วไปดรอปชุดบอสยากขึ้น (ให้บอสตำนานเป็นแหล่งหลัก) ----------
 window.DROP59=window.DROP59||{};
 }catch(e){console.warn('fix62',e)}
+</script>
+<script>
+// fix63 (v4.60) — สมดุลดาเมจทุกอาชีพ (วัดด้วย tools/scenarios/classdps.js ที่ Lv.100 ของระดับเดียวกัน ร่ายสกิลวน 12 วิ)
+//   เดิม: ธนู 1771 · สไนเปอร์ 1637 · นักบวช 1534 · เวท 1375 ... นินจา/พาลาดิน 572 → ห่างกัน 3 เท่า (สไนเปอร์/ธนูจบเนื้อหาไวเกิน)
+//   ปรับตัวคูณ CB28.o (สกิล/ยิง) และ MEL51 (ฟันธรรมดาสายประชิด) ให้ทุกอาชีพอยู่ราว 900–1100 เป้าเดี่ยว
+try{
+const F63={archer:.62,sniper:.6,cleric:.6,mage:.78,necro:1,dragoon:.9,sword:1.1,monk:1.3,summoner:1.4,ninja:1.7,paladin:1.5};window.F63=F63;
+for(const c in F63){if(CB28[c])CB28[c].o=Math.round(CB28[c].o*F63[c]*100)/100;if(window.MEL51&&MEL51[c])MEL51[c]=Math.round(MEL51[c]*F63[c]*100)/100}
+// PvP: คงความแรงเดิมของแต่ละอาชีพ (หารตัวคูณใหม่ออก) แต่ลดสไนเปอร์/ธนูที่ไล่ฆ่าผู้เล่นง่ายเกิน
+try{const PN63={sniper:.75,archer:.85};for(const c in F63)if(PVPCB29[c]!=null)PVPCB29[c]=Math.round(PVPCB29[c]/F63[c]*(PN63[c]||1)*100)/100}catch(e){}
+}catch(e){console.warn('fix63',e)}
+</script>
+<script>
+// fix64 (v4.60) — ระบบเกมให้เล่นนาน/ไม่ฟาร์มซ้ำ:
+//   (1) XP ทั้งเกม ×0.65 · ของหายาก (หินตีบวก/หินพร/อัญมณี/เกล็ด/แกน) ดรอปลดเหลือ 70%
+//   (2) ดันเจี้ยน: ชั้นที่เคยผ่านแล้ว (ต่ำกว่าชั้นสูงสุด) บอสไม่ให้กุญแจ กล่องได้แค่ของเล็กน้อย → กันวนลงชั้นเก่าฟาร์ม
+//   (3) หอคอย: ชั้นที่เคลียร์แล้วเข้าซ้ำไม่ได้ (ไม่มีปุ่มสู้ซ้ำ) · (4) บอสตำนานชนะแล้วรอ 30 นาที (เก็บถาวร ข้ามการออก-เข้าเกม)
+//   (5) เมนูหลัก: เอาวาปหอคอย/บอสโลก/บอสตำนานออก — หอคอยเดินเข้าประตูในเมือง · บอสโลกเดินไปประตูลานบอสโลกในทุ่งหญ้า · แท่นบอสตำนานอยู่ที่ประตูหอคอย
+try{
+// ---------- 1) XP / ดรอป ----------
+const XPM64=.65;window.XPM64=XPM64;
+{const _g=gainXp;gainXp=function(n){if(typeof n==='number'&&n>0&&!window.__noXpm64)n=Math.max(1,Math.round(n*XPM64));return _g.call(this,n)};window.gainXp=gainXp}
+const RARE64=new Set(['estone','bless','gem','scale','core','phoenix']);
+{const _ad=addDrop;addDrop=function(type,x,y){if(RARE64.has(type)&&Math.random()>.7)return;return _ad.apply(this,arguments)};window.addDrop=addDrop}
+// ---------- 2) ดันเจี้ยนชั้นเก่า ----------
+{const _mk=mobKill;mobKill=function(m){if(m&&m.boss&&D&&D.dg&&!m.lb62){D.rep64=D.dg<(DG.max|0)}return _mk.apply(this,arguments)};window.mobKill=mobKill}
+{const _ad=addDrop;addDrop=function(type,x,y){if(type==='dgkey'&&D&&D.dg&&D.rep64){return}return _ad.apply(this,arguments)};window.addDrop=addDrop}
+{const _dr=dgReward;dgReward=function(f){const R=_dr.apply(this,arguments);try{if(D&&D.rep64){const c=R.filter(k=>k==='coin').slice(0,3);setTimeout(()=>{try{say('📦 ชั้นนี้เคยผ่านแล้ว — กล่องให้แค่ของเล็กน้อย (ลงชั้นใหม่เพื่อรับของดี)')}catch(e){}},300);return c.length?c:['coin']}}catch(e){}return R};window.dgReward=dgReward}
+// ---------- 3) หอคอย: ไม่ให้เข้าชั้นที่เคลียร์แล้ว ----------
+{const _et=enterTower10;enterTower10=function(f){f=f|0;try{if(f>0&&f<=(TW10.data.max|0)){say('🗼 ชั้น '+f+' เคลียร์ไปแล้ว — ท้าชั้นถัดไปได้เลย');sfx('thud');return}}catch(e){}return _et.apply(this,arguments)};window.enterTower10=enterTower10}
+{const _ot=openTower10;openTower10=function(){const r=_ot.apply(this,arguments);try{if(DLG.open)DLG.ch=DLG.ch.filter(c=>!/เลือกชั้นที่ผ่านแล้ว|สู้ชั้นนี้อีกครั้ง/.test(c.t||''))}catch(e){}return r};window.openTower10=openTower10}
+{const _tk=talk;talk=function(n,txt,ch,name){try{if(Array.isArray(ch)&&ch.some(c=>/สู้ชั้นนี้อีกครั้ง/.test(c&&c.t||'')))ch=ch.filter(c=>!/สู้ชั้นนี้อีกครั้ง/.test(c&&c.t||''))}catch(e){}return _tk.call(this,n,txt,ch,name)};window.talk=talk}
+// ---------- 4) บอสตำนาน: รอ 30 นาทีหลังชนะ ----------
+const LBCD64={get(){try{return JSON.parse(localStorage.getItem('fm_lbcd64')||'{}')}catch(e){return{}}},set(o){try{localStorage.setItem('fm_lbcd64',JSON.stringify(o))}catch(e){}},ms:30*60e3};
+{const _en=enter62;enter62=function(i){const t=LBCD64.get()[i],rem=t?t+LBCD64.ms-Date.now():0;if(rem>0){say('🕒 '+LB62[i].n+' เพิ่งถูกผนึก — กลับมาได้ในอีก '+Math.ceil(rem/60000)+' นาที');sfx('thud');return}return _en.apply(this,arguments)};window.enter62=enter62}
+{const _mk=mobKill;mobKill=function(m){const w=m&&m.lb62&&D&&D.lb62!=null&&!D.won,i=D&&D.lb62;const r=_mk.apply(this,arguments);try{if(w&&D.won===1){const o=LBCD64.get();o[i]=Date.now();LBCD64.set(o)}}catch(e){}return r};window.mobKill=mobKill}
+{const _oa=openAltar62;openAltar62=function(){const r=_oa.apply(this,arguments);try{const o=LBCD64.get();if(DLG.open)for(const c of DLG.ch){const m=/^(\S+) (.+?) \(Lv/.exec(c.t||'');if(!m)continue;const i=LB62.findIndex(B=>B.n===m[2]);const rem=i>=0&&o[i]?o[i]+LBCD64.ms-Date.now():0;if(rem>0){c.t+=' 🕒'+Math.ceil(rem/60000)+'น.';c.c=''}}if(DLG.open)dlgShowChoices()}catch(e){}return r};window.openAltar62=openAltar62}
+// ---------- 5) เมนูหลัก: เอาวาปออก ----------
+try{for(const nm of ['หอคอย','บอสโลก','บอสตำนาน']){const i=PM7.findIndex(m=>m[1]===nm);if(i>=0)PM7.splice(i,1)}pmRender7()}catch(e){}
+// บอสโลก: ไม่มีปุ่มวาป — เดินไปประตูลานบอสโลกในทุ่งหญ้า (ข้างประตูมิติ)
+const WBG64=(()=>{try{let best=null,bd=1e9;for(let ty=ZG.ty-9;ty<=ZG.ty-4;ty++)for(let tx=ZG.tx-3;tx<=ZG.tx+3;tx++){const t=map[ty]&&map[ty][tx];if(t===GRASS||t===SAND){const d=Math.abs(tx-ZG.tx)+Math.abs(ty-(ZG.ty-6));if(d<bd){bd=d;best={tx,ty}}}}if(!best)best={tx:ZG.tx,ty:ZG.ty-6};return{x:best.tx*T+16,y:best.ty*T+16}}catch(e){return{x:ZG.x,y:ZG.y-180}}})();window.WBG64=WBG64;
+{const _ow=openWb10;openWb10=function(){const r=_ow.apply(this,arguments);try{if(DLG.open&&!inWb10()){DLG.ch=DLG.ch.filter(c=>!/ไปลานบอสโลก/.test(c.t||''));DLG.txt+='\n🚶 ทางเข้า: ประตูลานบอสโลก 🔥 ในทุ่งหญ้า (เหนือประตูมิติ) — เดินไปแล้วกดโต้ตอบ';dlgShowChoices&&0}}catch(e){}return r};window.openWb10=openWb10}
+try{wbHud10.onclick=()=>{try{say('🐉 ลานบอสโลกอยู่ในทุ่งหญ้า เหนือประตูมิติ — เดินไปที่ประตูไฟแล้วกดโต้ตอบ')}catch(e){}}}catch(e){}
+{const _it=interact;interact=function(){try{if(!D&&Math.hypot(P.x-WBG64.x,P.y-WBG64.y)<48){if(WB10.on)enterWb10();else openWb10();return true}}catch(e){}return _it.apply(this,arguments)};window.interact=interact}
+{const _h=hero;hero=function(){try{if(!D&&Math.abs(P.x-WBG64.x)<900&&Math.abs(P.y-WBG64.y)<700){const x=WBG64.x,y=WBG64.y,t=performance.now()/1000,on=WB10&&WB10.on;ctx.save();
+  ctx.fillStyle='rgba(0,0,0,.3)';ctx.beginPath();ctx.ellipse(x,y+6,26,8,0,0,7);ctx.fill();ctx.fillStyle='#3a1a10';ctx.fillRect(x-24,y-50,8,56);ctx.fillRect(x+16,y-50,8,56);ctx.fillRect(x-26,y-56,52,9);
+  ctx.globalCompositeOperation='lighter';const g=ctx.createRadialGradient(x,y-22,2,x,y-22,26);g.addColorStop(0,on?'rgba(255,220,120,.95)':'rgba(255,140,60,.45)');g.addColorStop(1,'rgba(255,60,0,0)');ctx.fillStyle=g;ctx.beginPath();ctx.ellipse(x,y-22,16,26+Math.sin(t*4)*2,0,0,7);ctx.fill();ctx.globalCompositeOperation='source-over';
+  ctx.font='bold 11px system-ui,"Noto Sans Thai",sans-serif';ctx.textAlign='center';ctx.lineWidth=3;ctx.strokeStyle='#2a0a04';const s='🐉 ลานบอสโลก'+(on?' (เปิดแล้ว!)':'');ctx.strokeText(s,x,y-62);ctx.fillStyle=on?'#ffe08a':'#ffb07a';ctx.fillText(s,x,y-62);
+  if(Math.hypot(P.x-x,P.y-y)<48){ctx.strokeText('กดโต้ตอบเพื่อเข้า',x,y+22);ctx.fillStyle='#fff';ctx.fillText('กดโต้ตอบเพื่อเข้า',x,y+22)}ctx.restore()}}catch(e){}return _h()};window.hero=hero}
+}catch(e){console.warn('fix64',e)}
+</script>
+<script>
+// fix65 (v4.60) — 🏆 ตารางอันดับดีไซน์ใหม่: แท่นโพเดียม 3 อันดับแรก + รูปตัวละครใส่ชุดจริง (เกราะ/แฟชั่น/อาวุธ) · การ์ดโปรไฟล์ของเรา
+//   ส่งรูปลักษณ์ (av) ไปกับสถิติตอนเซฟคลาวด์ · เซิร์ฟเวอร์ (accounts.js v4.60) เก็บ av และซ่อนบัญชีที่เลเวลขึ้นผิดปกติ
+try{
+function myAv65(){const a={};for(const k of ['helm','chest','pants','arm','sword'])if(P.armor[k])a[k]=P.armor[k];return {c:P.cls,ts:P.tier.sword|0,a,fb:FASH.body||'',fw:FASH.wpn||'',lk:Object.assign({},P.look8||{})}}
+window.myAv65=myAv65;
+{const _c=CLOUD.call;CLOUD.call=function(p,body,to){try{if(p==='/api/save'&&body){body.stat=Object.assign({},body.stat||{},{av:myAv65()})}}catch(e){}return _c.call(this,p,body,to)}}
+const AVC65={};
+function avCanvas65(av,w,h,sc,dir){const key=JSON.stringify(av||{})+w+h+sc+(dir||'');if(AVC65[key])return AVC65[key];const c=document.createElement('canvas');c.width=w;c.height=h;const k=c.getContext('2d');
+ const sv={ctx,armor:Object.assign({},P.armor),tier:Object.assign({},P.tier),cls:P.cls,fb:FASH.body,fw:FASH.wpn,look:P.look8,x:P.x,y:P.y,dir:P.dir,mv:P.mv,draw:P.draw,tool:P.tool,name:P.name,at:P.at,mount:MOUNT.on,dash:P.dash};
+ try{ctx=k;k.translate(w/2,h-6);k.scale(sc,sc);av=av||{};const A=av.a||{};for(const s of ['helm','chest','pants','arm','neck','ring','sword'])P.armor[s]=A[s]&&ITEMS[A[s]]?A[s]:null;P.tier.sword=av.ts|0;
+  P.cls=CLS[av.c]?av.c:'none';FASH.body=av.fb&&OUTFIT[av.fb]?av.fb:null;FASH.wpn=av.fw&&FWPN[av.fw]?av.fw:null;P.look8=Object.assign({},window.LOOKDEF8||{},av.lk||{});
+  P.x=0;P.y=0;P.dir=dir||'d';P.mv=false;P.draw=true;P.tool='sword';P.name='';P.at=-1;MOUNT.on=false;P.dash=0;window.__lbav65=1;hero()}catch(e){}
+ finally{window.__lbav65=0;ctx=sv.ctx;Object.assign(P.armor,sv.armor);Object.assign(P.tier,sv.tier);P.cls=sv.cls;FASH.body=sv.fb;FASH.wpn=sv.fw;P.look8=sv.look;P.x=sv.x;P.y=sv.y;P.dir=sv.dir;P.mv=sv.mv;P.draw=sv.draw;P.tool=sv.tool;P.name=sv.name;P.at=sv.at;MOUNT.on=sv.mount;P.dash=sv.dash}
+ return AVC65[key]=c}
+window.avCanvas65=avCanvas65;
+{const st=document.createElement('style');st.textContent=`
+#lb20 .w{background:linear-gradient(180deg,#1c1530,#0e0a18)!important}
+#lb20 .lb65{display:block!important;flex:1 1 auto;min-height:0;padding:8px 10px;overflow-y:auto;font-family:system-ui,"Noto Sans Thai",sans-serif;color:#f3e9d2}
+#lb20 .lb65 .tabs{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;background:rgba(0,0,0,.35);padding:3px;border-radius:12px;border:1px solid rgba(232,193,74,.25);margin-bottom:8px}
+#lb20 .lb65 .tabs button{all:unset;cursor:pointer;text-align:center;padding:6px 2px;border-radius:9px;font:700 11.5px system-ui,"Noto Sans Thai";color:#d8ccb0;white-space:nowrap}
+#lb20 .lb65 .tabs button.on{background:linear-gradient(180deg,#ffd86a,#d9a42a);color:#2a1a06}
+#lb20 .me65{display:flex;gap:10px;align-items:center;padding:8px;border-radius:14px;background:linear-gradient(90deg,rgba(122,255,154,.12),rgba(255,255,255,.03));border:1px solid rgba(122,255,154,.5);margin-bottom:10px}
+#lb20 .me65 canvas,#lb20 .pod canvas,#lb20 .row65 canvas{image-rendering:pixelated;flex:none;border:none!important;background:none!important;border-radius:0!important;max-width:none!important;margin:0!important;box-shadow:none!important}
+#lb20 .lb65 .podium,#lb20 .lb65 .tabs{width:100%;box-sizing:border-box}
+#lb20 .me65 div{text-align:left}#lb20 .me65 b{font:800 14px system-ui,"Noto Sans Thai";color:#fff}#lb20 .me65 small{display:block;font:600 11px system-ui,"Noto Sans Thai";color:#c8bca2}
+#lb20 .podium{display:grid;grid-template-columns:1fr 1.15fr 1fr;gap:6px;align-items:end;margin-bottom:10px}
+#lb20 .pod{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 4px 8px;border-radius:14px 14px 8px 8px;text-align:center;position:relative;min-width:0}
+#lb20 .pod.p1{background:linear-gradient(180deg,rgba(255,210,80,.28),rgba(255,210,80,.06));border:1px solid rgba(255,210,80,.8);padding-top:10px}
+#lb20 .pod.p2{background:linear-gradient(180deg,rgba(210,220,235,.22),rgba(210,220,235,.05));border:1px solid rgba(210,220,235,.7)}
+#lb20 .pod.p3{background:linear-gradient(180deg,rgba(220,140,80,.22),rgba(220,140,80,.05));border:1px solid rgba(220,140,80,.7)}
+#lb20 .pod .md{font-size:22px;line-height:1}#lb20 .pod b{font:800 12.5px system-ui,"Noto Sans Thai";color:#fff;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#lb20 .pod small{font:700 10.5px system-ui,"Noto Sans Thai";color:#ffd86a}#lb20 .pod em{font:600 10px system-ui,"Noto Sans Thai";color:#c8bca2;font-style:normal}
+#lb20 .row65{display:flex;align-items:center;gap:8px;padding:4px 8px;border-radius:10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);margin-bottom:4px}
+#lb20 .row65.me{border-color:rgba(122,255,154,.7);background:rgba(122,255,154,.08)}
+#lb20 .row65 i{font-style:normal;width:26px;text-align:center;font:900 13px system-ui;color:#d8ccb0}
+#lb20 .row65 .nm{flex:1;min-width:0}#lb20 .row65 .nm b{display:block;font:800 12.5px system-ui,"Noto Sans Thai";color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#lb20 .row65 .nm small{font:600 10.5px system-ui,"Noto Sans Thai";color:#c8bca2}#lb20 .row65 .v{font:800 12px system-ui;color:#ffd86a;white-space:nowrap}
+#lb20 .ft65{font:600 10.5px system-ui,"Noto Sans Thai";color:#8a8070;text-align:center;margin-top:6px}`;document.head.appendChild(st)}
+const esc65=s=>String(s==null?'':s).replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
+const clsN65=c=>CLS[c]?CLS[c].e+' '+CLS[c].n:'🔰 ไม่มีอาชีพ';
+lbRender20=function(){const tab=LB20.tab,u=(LBT20.find(x=>x[0]===tab)||[])[2]||'';let h='<div class="w"><div class="hd"><b>🏆 ตารางอันดับผู้กล้า</b><button onclick="p6close(lbW20)">✕</button></div><div class="bd lb65"><div class="tabs">'+LBT20.map(([k,n])=>'<button class="'+(tab===k?'on':'')+'" onclick="lbTab20(\''+k+'\')">'+n+'</button>').join('')+'</div>';
+ h+='<div class="me65"><span data-av="me"></span><div><b>'+esc65(P.name||'ผู้กล้า')+'</b><small>'+clsN65(P.cls)+' · Lv.'+P.lv+'</small><small>ล้มมอน '+(ST20.kills||0).toLocaleString()+' · ล้มบอส '+(ST20.boss||0)+' · ดันเจี้ยนชั้น '+(DG.max|0)+'</small></div></div>';
+ const L=LB20.data&&LB20.data[tab]||[],me=String(P.name||'');
+ if(LB20.err==='off')h+='<div class="ft65">ต้องเล่นแบบออนไลน์ (ล็อกอินบัญชี) จึงจะดูอันดับได้</div>';else if(LB20.err==='old')h+='<div class="ft65">เซิร์ฟเวอร์ยังเป็นเวอร์ชันเก่า</div>';else if(LB20.err)h+='<div class="ft65">โหลดอันดับไม่สำเร็จ ลองใหม่อีกครั้ง</div>';else if(!LB20.data)h+='<div class="ft65">กำลังโหลด…</div>';
+ else if(!L.length)h+='<div class="ft65">ยังไม่มีข้อมูล</div>';
+ else{const val=x=>tab==='lv'?'Lv.'+x.lv:Number(x.v).toLocaleString()+' '+u;const pod=(x,i)=>x?'<div class="pod p'+(i+1)+'"><span class="md">'+['🥇','🥈','🥉'][i]+'</span><span data-av="'+i+'" data-big="'+(i===0?2:1)+'"></span><b>'+esc65(x.n)+'</b><em>'+clsN65(x.cls)+'</em><small>'+val(x)+'</small></div>':'<div></div>';
+  h+='<div class="podium">'+pod(L[1],1)+pod(L[0],0)+pod(L[2],2)+'</div>';
+  L.slice(3).forEach((x,j)=>{const i=j+3,t=TTLMAP20[x.t];h+='<div class="row65'+(x.n===me?' me':'')+'"><i>'+(i+1)+'</i><span data-av="'+i+'" data-big="0"></span><div class="nm"><b>'+esc65(x.n)+(t?' <small style="color:'+t[2]+'">「'+t[1]+'」</small>':'')+'</b><small>'+clsN65(x.cls)+' · Lv.'+x.lv+'</small></div><span class="v">'+(tab==='lv'?'':val(x))+'</span></div>'});
+  h+='<div class="ft65">ผู้เล่นทั้งหมด '+(LB20.data.n|0)+' คน · อัปเดตเมื่อบันทึกเกมขึ้นคลาวด์ · บัญชีที่ผิดปกติจะไม่แสดง</div>'}
+ lbW20.innerHTML=h+'</div></div>';
+ try{for(const el of lbW20.querySelectorAll('[data-av]')){const id=el.dataset.av,big=+el.dataset.big;let av=null;if(id==='me')av=myAv65();else{const x=L[+id];av=x&&x.av?x.av:{c:x&&x.cls}}const cv=id==='me'?avCanvas65(av,64,74,1.35):big===2?avCanvas65(av,86,98,1.8):big===1?avCanvas65(av,72,84,1.5):avCanvas65(av,40,46,.85);const cl=cv.cloneNode(false);cl.getContext('2d').drawImage(cv,0,0);cl.style.setProperty('width',cv.width+'px','important');cl.style.setProperty('height',cv.height+'px','important');el.replaceWith(cl)}}catch(e){console.warn('lb65',e)}};
+window.lbRender20=lbRender20;
+}catch(e){console.warn('fix65',e)}
+</script>
+<script>
+// fix66 (v4.60) — 📖 คู่มือผู้กล้า (สอนผู้เล่นใหม่: ไปไหน หาของจากไหน ทำอะไรต่อ) + คำแนะนำอัตโนมัติตามเลเวล (ขึ้นครั้งเดียว)
+//   เปิดได้ที่เมนูหลัก 📖 คู่มือ และปุ่มในสมุดเควส · ใช้ระบบเดิมทั้งหมด (เนื้อเรื่องพระราชา/เควสกิลด์/ตำราช่าง/ดันเจี้ยน/หอคอย/บอสตำนาน/บอสโลก)
+try{
+const GB66=[
+ ['🏰 เริ่มต้น','จุดเกิดคือ<b>ลานหน้าปราสาท</b> · คุยกับ<b>พระราชา</b>ในปราสาทเพื่อเริ่มเนื้อเรื่อง (มีลูกศรนำทางบนจอ) · เดินออก<b>ขอบซ้ายของเมือง</b> = ทุ่งหญ้า (มอนเลเวลต่ำ) · NPC ที่มี <b style="color:#ffd84a">!</b> บนหัวมีเควสรองให้ · กลางคืน (21:00–05:30) ชาวเมืองนอน แตะปลุกคุยได้'],
+ ['🪵 วัตถุดิบ','<b>ไม้</b>: ตัดต้นไม้ในทุ่งหญ้า/ป่า (ป่าละเมาะ → ป่าลำธาร → ป่าสน → ป่าหมอก) · <b>แร่</b>: ประตูมิติในทุ่งหญ้า → เหมืองเหล็ก/ทองแดง/เงิน/ทอง/เพชร · <b>ของจากมอน</b>: เจลสไลม์ ปีกค้างคาว เปลือกด้วง หนังหมาป่า ผงวิญญาณ เกล็ดมังกร แกนหินเวท · <b>แก่นเวทมนตร์</b>: หลอมจากเศษแก่นเวทที่โต๊ะคราฟ'],
+ ['⚒️ ตีอาวุธ/ชุด','ร้านอาวุธเกราะ (ซ้ายบนของเมือง): <b>เตาหลอม</b> แร่→แท่ง · <b>โต๊ะคราฟ</b> สร้างอาวุธ/ชุด/อาวุธประจำอาชีพ · <b>แท่นตีบวก</b> ใช้หินตีบวกเพิ่มพลัง (ยิ่งสูงยิ่งเสี่ยง หินพรกันระดับลด) · เซ็ตระดับสูงต้องรับ<b>ตำราช่าง</b>จากช่างหนวดเหล็กก่อน'],
+ ['🎓 อาชีพ & สกิล','Lv.10 คุยกับ<b>ปรมาจารย์อาชีพ</b> (จัตุรัส) เลือก 1 ใน 11 อาชีพ · สกิลช่อง 1–3 ปลดล็อกเองตามเลเวล · สกิลช่อง 4–6 <b>ซื้อที่ร้านสกิล</b> (5,000 / 12,000 / 30,000 🪙) · ต้องถืออาวุธประจำอาชีพจึงร่ายได้ · พาสซีฟได้ฟรีตามเลเวล'],
+ ['🗝️ ดันเจี้ยน','เข้าที่<b>รูปปั้นในท้องพระโรง</b> (ในปราสาท) · แต่ละชั้นมีบอส → ได้กุญแจ → เปิดกล่องแล้วกดลงชั้นต่อไป · <b>ชั้นที่เคยผ่านแล้ว</b>บอสไม่ให้กุญแจ กล่องให้แค่ของเล็กน้อย · บอสตายแล้วรอเกิดใหม่ 15 นาที (ออก-เข้าเกมก็ไม่รีเซ็ต)'],
+ ['🗼 หอคอยบอส','ประตูหอคอยอยู่<b>มุมขวาบนของเมือง</b> · 12 ชั้น ชั้นละบอส 1 ตัว เวลา 5 นาที · <b>ชั้นที่เคลียร์แล้วเข้าซ้ำไม่ได้</b> ต้องท้าชั้นถัดไป'],
+ ['🐲 บอสตำนาน (ชุดบอส)','ที่<b>ประตูหอคอย → แท่นผนึกอสูร</b> · 6 บอส (Lv.20–115) เลือดมหาศาล หลบวงแดง · ชนะได้<b>ตราอสูร</b> (10 อัน แลกชิ้นเซ็ตที่ต้องการ) และมีโอกาสดรอปชิ้นเซ็ตทันที · ชนะแล้วรอ 30 นาทีต่อตัว · ชุดบอส 6 เซ็ต: หนามพงไพร → เกล็ดอสรพิษ → เขี้ยวเหมันต์ → ฟาโรห์สุริยัน → มังกรโลหิต → จักรพรรดิเงา'],
+ ['🐉 บอสโลก','ปรากฏ <b>12:00 และ 20:00</b> น. อยู่ 30 นาที · เดินไป<b>ประตูลานบอสโลก 🔥 ในทุ่งหญ้า</b> (เหนือประตูมิติ) · ตีร่วมกับทุกคน จัดอันดับตามดาเมจ'],
+ ['📜 เควส','<b>เนื้อเรื่อง</b>: พระราชา (17 บท) · <b>เควสกิลด์</b>: บอร์ดในกิลด์นักผจญภัย (รับได้ 3 เควส) · <b>เควสรอง</b>: ชาวเมืองที่มี ! · <b>ตำราช่าง</b>: ช่างหนวดเหล็ก'],
+ ['🏡 อื่น ๆ','<b>ที่ดินผู้กล้า</b> ปลูกผัก/เลี้ยงสัตว์ (ประตูมิติในทุ่งหญ้า) · <b>ธนาคาร</b> ฝากเงินได้ดอกเบี้ย · <b>คลังสมบัติ</b> ฝากของ · <b>บูติก</b> ชุด/อาวุธแฟชั่น · <b>ตลาด/โรงประมูล</b> ซื้อขายกับผู้เล่น · ตกปลาที่ริมน้ำ']];
+const gbW66=mk6('gb66');
+{const st=document.createElement('style');st.textContent='#gb66 .bd{display:block!important;padding:8px 10px;overflow-y:auto;font-family:system-ui,"Noto Sans Thai",sans-serif}#gb66 details{background:rgba(255,255,255,.05);border:1px solid rgba(232,193,74,.25);border-radius:10px;margin-bottom:6px;padding:6px 10px}#gb66 summary{cursor:pointer;font:800 13.5px system-ui,"Noto Sans Thai";color:#ffd86a}#gb66 details div{font:500 12.5px/1.6 system-ui,"Noto Sans Thai";color:#e8dcc0;margin-top:4px}#gb66 .nx{background:linear-gradient(90deg,rgba(122,255,154,.14),rgba(255,255,255,.03));border:1px solid rgba(122,255,154,.5);border-radius:10px;padding:8px 10px;margin-bottom:8px;font:600 12.5px/1.5 system-ui,"Noto Sans Thai";color:#e8ffe8}';document.head.appendChild(st)}
+function next66(){const L=P.lv|0;try{if(STORY&&STORY.st==='report')return 'กลับไปรายงานพระราชาที่ปราสาท (ภารกิจสำเร็จแล้ว)'}catch(e){}
+ if(L<5)return 'ล่าสไลม์ในทุ่งหญ้า (ขอบซ้ายของเมือง) เก็บเจลสไลม์และตัดไม้ · ทำเนื้อเรื่องบทที่ 1 กับพระราชา';
+ if(L<10)return 'หลอมแท่งแร่ที่เตาหลอม แล้วคราฟอาวุธที่โต๊ะคราฟ (ร้านอาวุธเกราะ) · ถึง Lv.10 ไปเลือกอาชีพ';
+ if(P.cls==='none')return 'ไปเลือกอาชีพกับปรมาจารย์อาชีพที่จัตุรัสกลางเมือง!';
+ if(L<20)return 'ลองดันเจี้ยน (รูปปั้นในท้องพระโรง) และรับเควสกิลด์ · คราฟอาวุธประจำอาชีพที่โต๊ะคราฟ';
+ if(L<35)return 'ท้าบอสตำนานตัวแรก ราชาพฤกษาหนาม (ประตูหอคอย → แท่นผนึกอสูร) · ไปป่าละเมาะ/เหมืองเหล็ก';
+ if(L<50)return 'ซื้อสกิลช่อง 4 ที่ร้านสกิลเมื่อถึง Lv.50 · ไต่หอคอยบอสและดันเจี้ยนชั้น 25+';
+ if(L<75)return 'ล่าชุดบอส (นาคราชอสรพิษ/ราชันย์หมาป่าเหมันต์) · ตีบวกชุดให้ถึง +7 จะมีออร่า 3D';
+ return 'ไต่ดันเจี้ยนชั้น 50–100 · ล่าบอสตำนานระดับสูง · ร่วมบอสโลก 12:00/20:00'}
+function openGuide66(){p6open(gbW66);let h='<div class="w"><div class="hd"><b>📖 คู่มือผู้กล้า</b><button onclick="p6close(gbW66)">✕</button></div><div class="bd"><div class="nx">🧭 <b>ควรทำต่อ (Lv.'+P.lv+'):</b> '+next66()+'</div>';
+ GB66.forEach(([t,d],i)=>{h+='<details'+(i===0&&P.lv<10?' open':'')+'><summary>'+t+'</summary><div>'+d+'</div></details>'});gbW66.innerHTML=h+'</div></div>'}
+window.openGuide66=openGuide66;
+try{const at=PM7.findIndex(m=>m[1]==='เควส');PM7.splice(at<0?0:at+1,0,['📖','คู่มือ',()=>openGuide66()]);pmRender7()}catch(e){}
+// คำแนะนำอัตโนมัติ (ครั้งเดียวต่อขั้น)
+const TIP66=[[3,'📖 เคล็ดลับ: เปิด "📖 คู่มือ" ในเมนูหลัก ดูว่าควรทำอะไรต่อและหาของจากไหน'],[5,'⚒️ Lv.5 แล้ว! หลอมแร่ที่เตาหลอม แล้วคราฟอาวุธที่โต๊ะคราฟในร้านอาวุธเกราะ'],[10,'🎓 Lv.10 แล้ว! ไปเลือกอาชีพกับปรมาจารย์อาชีพที่จัตุรัส'],
+ [15,'🗝️ ลองดันเจี้ยน: รูปปั้นในท้องพระโรง (ในปราสาท) · ฆ่าบอส → กุญแจ → ลงชั้นต่อ'],[20,'🐲 บอสตำนานตัวแรกเปิดแล้ว! ไปที่ประตูหอคอย → แท่นผนึกอสูร (ดรอปชุดบอส)'],[30,'🗼 หอคอยบอส: ประตูมุมขวาบนของเมือง · ชั้นที่เคลียร์แล้วไม่ต้องสู้ซ้ำ'],
+ [50,'📘 Lv.50: ซื้อสกิลช่อง 4 ได้ที่ร้านสกิล (5,000 🪙)'],[75,'📘 Lv.75: สกิลช่อง 5 ที่ร้านสกิล (12,000 🪙)'],[100,'📘 Lv.100: สกิลช่อง 6 ที่ร้านสกิล (30,000 🪙)']];
+const TS66={get(){try{return JSON.parse(localStorage.getItem('fm_tip66')||'[]')}catch(e){return[]}},set(a){try{localStorage.setItem('fm_tip66',JSON.stringify(a))}catch(e){}}};
+setInterval(()=>{try{if(PAUSED||!titleEl.hidden)return;const seen=TS66.get();for(const [lv,txt] of TIP66){if(P.lv>=lv&&!seen.includes(lv)){seen.push(lv);TS66.set(seen);sysSay(txt);try{banner('📖 คำแนะนำ',txt.replace(/^\S+ /,''),'')}catch(e){}break}}}catch(e){}},5000);
+// ปุ่มคู่มือในสมุดเควส
+{const _oj=openJournal;openJournal=function(){const r=_oj.apply(this,arguments);try{setTimeout(()=>{const el=document.querySelector('#jn,#journal,.journal');if(el&&!el.querySelector('.gb66b'))el.insertAdjacentHTML('afterbegin','<button class="mini gb66b" style="margin:4px" onclick="openGuide66()">📖 คู่มือผู้กล้า</button>')},50)}catch(e){}return r};window.openJournal=openJournal}
+}catch(e){console.warn('fix66',e)}
+</script>
+<script>
+// fix67 (v4.60) — กันโกงฝั่งเครื่องผู้เล่น: ปิดโหมด GM (อมตะ/ไม่มีคูลดาวน์) ถ้าไม่ใช่ GM จริง · ค่าในกระเป๋าติดลบ/NaN/เกินจริง → แก้ · ตีบวกเกิน +20 → +20 · เลเวลเกิน 150 → 150
+//   (เซิร์ฟเวอร์ accounts.js v4.60: เลเวลกระโดดผิดปกติ = ติดธง ไม่ขึ้นตารางอันดับ)
+try{
+const dev67=location.protocol==='file:'&&/devtest=1/.test(location.search);
+setInterval(()=>{try{if(dev67)return;const gm=typeof gmAllowed==='function'&&gmAllowed();
+ if(!gm&&typeof GM7!=='undefined'&&(GM7.god||GM7.nocd)){GM7.god=false;GM7.nocd=false}
+ for(const k in inv){const v=inv[k];if(typeof v==='number'&&(!Number.isFinite(v)||v<0))inv[k]=0;if(k==='coin'&&v>5e9)inv.coin=5e9}
+ for(const id in ENH){if(!(ENH[id]>=0))ENH[id]=0;else if(ENH[id]>20)ENH[id]=20}
+ const mx=typeof MAXLV!=='undefined'?MAXLV:150;if(P.lv>mx)P.lv=mx;if(!(P.lv>=1))P.lv=1;
+ for(const id in GEAR){const n=GEAR[id];if(!Number.isFinite(n)||n<0)delete GEAR[id];else if(n>999)GEAR[id]=999}}catch(e){}},3000);
+}catch(e){console.warn('fix67',e)}
 </script>
 </body>
 </html>

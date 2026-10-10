@@ -48,7 +48,14 @@ async function lbFlush() { if (!LB.dirty) return; LB.dirty = false; const body =
 } catch (e) { console.log('lbFlush', e.message); LB.dirty = true; } }
 { const iv = setInterval(lbFlush, 30000); if (iv.unref) iv.unref(); }
 const lbN = (v, mx) => Math.max(0, Math.min(mx, Math.floor(+v || 0)));
-function lbTop() { const arr = Object.values(LB.map); const top = k => arr.filter(x => x[k] > 0).sort((a, b) => b[k] - a[k] || b.lv - a.lv).slice(0, 20).map(x => ({ n: x.n, v: x[k], lv: x.lv, cls: x.cls, t: x.t }));
+// v4.60: รูปตัวละครในตารางอันดับ (av) + กันโกง: บัญชีที่เลเวลกระโดดผิดปกติ (flag) ไม่ขึ้นอันดับ
+const AVID = /^[a-z0-9_]{1,24}$/;
+function lbAv(a) { try { if (!a || typeof a !== 'object') return null; const o = { c: clean(a.c, 10), ts: Math.max(0, Math.min(30, a.ts | 0)), a: {} };
+  for (const k of ['helm', 'chest', 'pants', 'arm', 'sword']) if (a.a && AVID.test(String(a.a[k] || ''))) o.a[k] = String(a.a[k]);
+  if (AVID.test(String(a.fb || ''))) o.fb = String(a.fb); if (AVID.test(String(a.fw || ''))) o.fw = String(a.fw);
+  if (a.lk && typeof a.lk === 'object') { o.lk = {}; let n = 0; for (const k in a.lk) { if (n++ > 12) break; const v = a.lk[k]; if (/^[a-z0-9]{1,8}$/i.test(k) && (typeof v === 'number' || (typeof v === 'string' && v.length <= 12))) o.lk[k] = v; } }
+  return JSON.stringify(o).length <= 600 ? o : null; } catch (e) { return null; } }
+function lbTop() { const arr = Object.values(LB.map).filter(x => !x.flag); const top = k => arr.filter(x => x[k] > 0).sort((a, b) => b[k] - a[k] || b.lv - a.lv).slice(0, 20).map(x => ({ n: x.n, v: x[k], lv: x.lv, cls: x.cls, t: x.t, av: x.av || null }));
   return { ok: true, lv: top('lv'), k: top('k'), b: top('b'), w: top('w'), fl: top('fl'), n: arr.length }; }
 
 // ---------- กิลด์ผู้เล่น (เอกสารเดียว: Upstash key eld:guilds หรือไฟล์ data/guilds.json) ----------
@@ -139,9 +146,10 @@ async function handle(path_, d, ip) {
     const save = String(d.save || ''); if (!save || save.length > MAX_SAVE) return { err: 'size' };
     if (!d.force && (d.base | 0) !== rec.rev) return { err: 'conflict', rev: rec.rev, lv: rec.lv, upd: rec.upd };
     if (rec.save && rec.save !== save) rec.bak = rec.save;
-    rec.save = save; rec.rev++; rec.upd = Date.now(); rec.lv = Math.max(0, Math.min(999, d.lv | 0)); rec.cls = clean(d.cls, 10); rec.name = clean(d.name, 14) || rec.name;
+    const lv0 = rec.lv | 0, t0 = rec.upd || 0; rec.save = save; rec.rev++; rec.upd = Date.now(); rec.lv = Math.max(0, Math.min(150, d.lv | 0));
+    if (lv0 >= 5 && rec.lv - lv0 >= 25 && rec.upd - t0 < 30 * 60e3) rec.flag = (rec.flag | 0) + 1; // เลเวลขึ้น 25+ ใน 30 นาที = ผิดปกติ rec.cls = clean(d.cls, 10); rec.name = clean(d.name, 14) || rec.name;
     if (d.stat && typeof d.stat === 'object') rec.stat = { floor: d.stat.floor | 0, mine: d.stat.mine | 0, kills: d.stat.kills | 0 };
-    try { await lbLoad(); const S = rec.stat || {}, X = d.stat || {}; LB.map[lid] = { n: rec.name, lv: rec.lv, cls: rec.cls, fl: lbN(S.floor, 999), k: lbN(S.kills, 1e8), b: lbN(X.boss, 1e7), w: lbN(X.w, 1e12), t: clean(X.t, 16), u: Date.now() };
+    try { await lbLoad(); const S = rec.stat || {}, X = d.stat || {}; LB.map[lid] = { n: rec.name, lv: rec.lv, cls: rec.cls, fl: lbN(S.floor, 999), k: lbN(S.kills, 1e8), b: lbN(X.boss, 1e7), w: lbN(X.w, 1e12), t: clean(X.t, 16), av: lbAv(X.av), flag: (rec.flag | 0) >= 2 ? 1 : 0, u: Date.now() };
       const ks = Object.keys(LB.map); if (ks.length > 5000) { ks.sort((p, q) => LB.map[p].u - LB.map[q].u); for (const k of ks.slice(0, ks.length - 5000)) delete LB.map[k]; } LB.dirty = true; } catch (e) {}
     try { await gLoad(); gTouchMember(lid, rec.name, rec.lv); } catch (e) {}
     if (!await dbSet(lid, rec)) return { err: 'store' };
