@@ -126,7 +126,7 @@ const GEM_PKG = [{ id: 'p1', baht: 35, gem: 30 }, { id: 'p2', baht: 99, gem: 100
 // ข้อมูลรับเงิน: ตั้งใน Render → Environment (ไม่เก็บในโค้ด) TOPUP_PROMPTPAY = เบอร์/เลขบัตรพร้อมเพย์ · TOPUP_NAME = ชื่อบัญชี · TOPUP_CONTACT = ช่องทางส่งสลิป (เช่น LINE: @xxxx)
 const topupInfo = () => ({ pp: String(process.env.TOPUP_PROMPTPAY || '').replace(/[^0-9]/g, '').slice(0, 15), nm: clean(process.env.TOPUP_NAME, 40), ct: clean(process.env.TOPUP_CONTACT, 80) });
 const bkkDay = () => new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10);
-const TQ = { map: {}, dirty: false, loaded: null };
+const TQ = { map: {}, dirty: false, loaded: null }; const TOPH = { fn: null }; // v4.71 แจ้ง GM ทันทีเมื่อมีคำขอโดเนทใหม่
 function tqLoad() { if (TQ.loaded) return TQ.loaded; TQ.loaded = (async () => { try {
   if (UP_URL) { const r = await fetch(UP_URL + '/get/eld:topq', { headers: { authorization: 'Bearer ' + UP_TOK } }); const j = await r.json(); if (j && j.result) TQ.map = JSON.parse(j.result) || {}; }
   else { const f = path.join(DATA_DIR, 'topq.json'); if (fs.existsSync(f)) TQ.map = JSON.parse(fs.readFileSync(f, 'utf8')) || {}; }
@@ -157,7 +157,7 @@ async function gemOp(lid, rec, d) {
     let ref; do { ref = crypto.randomBytes(3).toString('hex').toUpperCase(); } while (TQ.map[ref]);
     TQ.map[ref] = { lid, id: rec.id, n: rec.name || rec.id, baht: P.baht, gem: P.gem, t: Date.now(), st: 'p' };
     const ks = Object.keys(TQ.map); if (ks.length > 2000) for (const k of ks.filter(k => TQ.map[k].st !== 'p').slice(0, ks.length - 2000)) delete TQ.map[k];
-    await tqFlush(); return { ok: true, ref, baht: P.baht, gem: P.gem, top: topupInfo() }; }
+    await tqFlush(); try { if (TOPH.fn) TOPH.fn(Object.values(TQ.map).filter(q => q.st === 'p').length, rec.name || rec.id, P.baht); } catch (e) {} return { ok: true, ref, baht: P.baht, gem: P.gem, top: topupInfo() }; }
   if (op === 'cancel') { await tqLoad(); const q = TQ.map[clean(d.ref, 8).toUpperCase()]; if (q && q.lid === lid && q.st === 'p') { q.st = 'c'; await tqFlush(); } return { ok: true }; }
   // ----- GM เท่านั้น -----
   if (!isGM) return { err: 'perm' };
@@ -244,8 +244,22 @@ function middleware(req, res, allowOrigin) {
 
 // ---- ใช้กับเซิร์ฟเวอร์เกม: ยืนยันตัวตน + กล่องจดหมาย (ของจากประมูล/บอสโลก ส่งถึงแม้ออฟไลน์) ----
 async function verify(id, token) { const lid = clean(id, 16).toLowerCase(); if (!ID_RE.test(lid)) return null; const rec = await dbGet(lid); if (!await authToken(rec, token)) return null; return { lid, name: rec.name || id, gm: !!rec.gm || GM_IDS.includes(lid) }; }
-async function mailAdd(lid, item) { const rec = await dbGet(lid); if (!rec) return false; rec.mail = (rec.mail || []).slice(-60); rec.mail.push(Object.assign({ ts: Date.now() }, item)); return dbSet(lid, rec); }
-async function mailTake(lid) { const rec = await dbGet(lid); if (!rec || !rec.mail || !rec.mail.length) return []; const m = rec.mail; rec.mail = []; await dbSet(lid, rec); return m; }
+// v4.71 📬 กล่องจดหมายถาวร: ของอยู่ในกล่องจนกว่าผู้เล่นกด "รับ" (ไม่หายแม้หลุด/โหลดเซฟทับ/เซิร์ฟเวอร์รีสตาร์ต)
+const mid71 = () => Date.now().toString(36) + crypto.randomBytes(3).toString('hex');
+const mailFix = rec => { let ch = false; for (const m of rec.mail || []) if (!m.id) { m.id = mid71(); ch = true; } return ch; };
+async function mailAdd(lid, item) { for (let i = 0; i < 3; i++) { const rec = await dbGet(lid); if (!rec) return false; rec.mail = (rec.mail || []).slice(-99); const m = Object.assign({ ts: Date.now() }, item); m.id = mid71(); rec.mail.push(m); if (await dbSet(lid, rec)) return m; await new Promise(r => setTimeout(r, 400)); } return false; }
+async function mailList(lid) { const rec = await dbGet(lid); if (!rec || !rec.mail) return []; if (mailFix(rec)) await dbSet(lid, rec); return rec.mail; }
+async function mailClaim(lid, ids) { const rec = await dbGet(lid); if (!rec || !rec.mail || !rec.mail.length) return []; mailFix(rec);
+  const all = ids === 'all', set = new Set(Array.isArray(ids) ? ids.map(String) : []), got = [], keep = [];
+  for (const m of rec.mail) (all || set.has(m.id) ? got : keep).push(m); if (!got.length) return [];
+  rec.mail = keep; if (!await dbSet(lid, rec)) { rec.mail = keep.concat(got); return []; } return got; }
+async function mailTake(lid) { return mailClaim(lid, 'all'); }
+// v4.71 เก็บข้อมูลส่วนกลาง (โรงประมูล ฯลฯ) ให้รอดการรีสตาร์ต/deploy — Upstash หรือไฟล์
+async function kvGet(key) { try { if (UP_URL) { const r = await fetch(UP_URL + '/get/' + key, { headers: { authorization: 'Bearer ' + UP_TOK } }); const j = await r.json(); return j && j.result ? JSON.parse(j.result) : null; }
+  const f = path.join(DATA_DIR, key.replace(/[^a-z0-9_]/gi, '_') + '.json'); return fs.existsSync(f) ? JSON.parse(fs.readFileSync(f, 'utf8')) : null; } catch (e) { console.log('kvGet', e.message); return null; } }
+async function kvSet(key, val) { try { const body = JSON.stringify(val); if (UP_URL) { await fetch(UP_URL + '/set/' + key, { method: 'POST', headers: { authorization: 'Bearer ' + UP_TOK }, body }); return true; }
+  const f = path.join(DATA_DIR, key.replace(/[^a-z0-9_]/gi, '_') + '.json'), t = f + '.tmp'; fs.writeFileSync(t, body); fs.renameSync(t, f); return true; } catch (e) { console.log('kvSet', e.message); return false; } }
+async function topPend() { await tqLoad(); return Object.values(TQ.map).filter(q => q.st === 'p').length; }
 // v4.64: เพิ่มเหรียญแฟชั่นจากระบบเซิร์ฟเวอร์ (บอสโลก)
 async function gemAdd(lid, n, why) { try { const rec = await dbGet(String(lid || '').toLowerCase()); if (!rec) return false; n = Math.max(0, Math.min(1000, n | 0)); if (!n) return false; rec.gem = (rec.gem | 0) + n; gemLog(rec, n, why || 'sys'); return dbSet(String(lid).toLowerCase(), rec); } catch (e) { return false; } }
-module.exports = { gemAdd, middleware, handle, GM_IDS, verify, mailAdd, mailTake, guildOf, guildOfSync, setGuildHook: fn => { GD.hook = fn; } };
+module.exports = { gemAdd, middleware, handle, GM_IDS, verify, mailAdd, mailTake, mailList, mailClaim, kvGet, kvSet, topPend, setTopHook: fn => { TOPH.fn = fn; }, guildOf, guildOfSync, setGuildHook: fn => { GD.hook = fn; } };
