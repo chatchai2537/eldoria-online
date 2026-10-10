@@ -47,12 +47,15 @@ function sanitizeFx(f) { if (!f || typeof f !== 'object') return null; const e =
   if (f.e && typeof f.e === 'object') for (const k of ['sword','helm','chest','pants','arm','ring','neck']) if (f.e[k]) e[k] = num(f.e[k], 0, 30) | 0;
   const rn = f.rn && typeof f.rn === 'object' ? { el: clean(f.rn.el, 10), g: num(f.rn.g, 0, 9) | 0 } : null;
   return { e, rn, fw: clean(f.fw, 16), fb: clean(f.fb, 16), m: clean(f.m, 10), mo: !!f.mo }; }
+// v4.63: สมุน (necro/summoner) ให้ผู้เล่นอื่นเห็น — สูงสุด 8 ตัว ตำแหน่งเทียบตัวผู้เล่น
+function sanitizeMn(a) { if (!Array.isArray(a)) return null; const r = []; for (const m of a.slice(0, 8)) { if (!m || typeof m !== 'object' || !/^[a-z0-9]{1,12}$/.test(String(m.k || ''))) continue;
+  r.push({ k: String(m.k), x: num(m.x, -600, 600) | 0, y: num(m.y, -600, 600) | 0, f: m.f < 0 ? -1 : 1, m: m.m ? 1 : 0, s: m.s ? 1 : 0, c: Math.round(num(m.c, .3, 3) * 100) / 100 }); } return r.length ? r : null; }
 function sanitizeState(d) {
   const armor = {}; if (d.armor && typeof d.armor === 'object') for (const k of ['sword','helm','chest','pants','arm','ring','neck']) if (d.armor[k]) armor[k] = clean(d.armor[k], 24);
   const tier = {}; if (d.tier && typeof d.tier === 'object') for (const k of ['sword','axe','pick']) tier[k] = num(d.tier[k], 0, 12) | 0;
   const lk = d.look && typeof d.look === 'object' ? { g: d.look.g === 'f' ? 'f' : 'm', top: hex(d.look.top), pants: hex(d.look.pants), hair: hex(d.look.hair) } : null;
   return { x: num(d.x, -1e4, 1e5), y: num(d.y, -1e4, 1e5), dir: DIRS.has(d.dir) ? d.dir : 'd', mv: !!d.mv, run: !!d.run, at: num(d.at, -1, 1), cmb: num(d.cmb, 0, 2) | 0,
-    tool: TOOLS.has(d.tool) ? d.tool : 'sword', draw: !!d.draw, armor, tier, lv: num(d.lv, 1, 999) | 0, dead: !!d.dead, cls: clean(d.cls, 10), pvp: !!d.pvp, look: lk, mount: clean(d.mount, 10), fx: sanitizeFx(d.fx), stl: d.stl && d.stl.ti ? { ti: clean(d.stl.ti, 24), n: num(d.stl.n, 0, 12) | 0 } : null, ttl: clean(d.ttl, 16), hpP: num(d.hpP, 0, 100) | 0, pb: num(d.pb, 0, 3) | 0, q: num(d.q, 0, 1e13), cl: d.cl && typeof d.cl === 'object' ? { i: num(d.cl.i, 0, 9) | 0, n: clean(d.cl.n, 24), t: num(d.cl.t, 0, 1e13) } : null };
+    tool: TOOLS.has(d.tool) ? d.tool : 'sword', draw: !!d.draw, armor, tier, lv: num(d.lv, 1, 999) | 0, dead: !!d.dead, cls: clean(d.cls, 10), pvp: !!d.pvp, look: lk, mount: clean(d.mount, 10), fx: sanitizeFx(d.fx), stl: d.stl && d.stl.ti ? { ti: clean(d.stl.ti, 24), n: num(d.stl.n, 0, 12) | 0 } : null, ttl: clean(d.ttl, 16), hpP: num(d.hpP, 0, 100) | 0, pb: num(d.pb, 0, 3) | 0, q: num(d.q, 0, 1e13), cl: d.cl && typeof d.cl === 'object' ? { i: num(d.cl.i, 0, 9) | 0, n: clean(d.cl.n, 24), t: num(d.cl.t, 0, 1e13) } : null, mn: sanitizeMn(d.mn) };
 }
 const findByName = n => { n = String(n || '').toLowerCase(); for (const p of players.values()) if (p.joined && p.name.toLowerCase() === n) return p; for (const p of players.values()) if (p.joined && p.name.toLowerCase().startsWith(n)) return p; return null; };
 wss.on('connection', (ws, req) => {
