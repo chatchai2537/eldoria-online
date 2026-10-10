@@ -142,7 +142,7 @@ async function gemOp(lid, rec, d) {
   const op = String(d.op || ''); const isGM = !!rec.gm || GM_IDS.includes(lid);
   if (gemDay(rec)) await dbSet(lid, rec);
   if (op === 'bal') { await tqLoad(); const r = gemPub(rec); r.pend = Object.entries(TQ.map).filter(([, q]) => q.lid === lid && q.st === 'p').map(([ref, q]) => ({ ref, baht: q.baht, gem: q.gem, t: q.t })); return r; }
-  if (op === 'earn') { const src = String(d.src || ''), E = GEM_EARN[src]; if (!E || src === 'login') return { err: 'src' };
+  if (op === 'earn') { const src = String(d.src || ''), E = GEM_EARN[src]; if (!E || src === 'login' || src === 'wboss') return { err: 'src' }; // v4.64: บอสโลกแจกจากเซิร์ฟเวอร์ (world.js) แทน
     rec.gt = rec.gt || {}; const now = Date.now(); if (E.cd && now - (rec.gt[src] || 0) < E.cd) return { err: 'cd' };
     if ((rec.gearn | 0) >= GEM_CAP) return { err: 'cap' };
     if (src === 'xchg') { if ((rec.gx | 0) >= E.max) return { err: 'xmax' }; rec.gx = (rec.gx | 0) + 1; }
@@ -246,4 +246,6 @@ function middleware(req, res, allowOrigin) {
 async function verify(id, token) { const lid = clean(id, 16).toLowerCase(); if (!ID_RE.test(lid)) return null; const rec = await dbGet(lid); if (!await authToken(rec, token)) return null; return { lid, name: rec.name || id, gm: !!rec.gm || GM_IDS.includes(lid) }; }
 async function mailAdd(lid, item) { const rec = await dbGet(lid); if (!rec) return false; rec.mail = (rec.mail || []).slice(-60); rec.mail.push(Object.assign({ ts: Date.now() }, item)); return dbSet(lid, rec); }
 async function mailTake(lid) { const rec = await dbGet(lid); if (!rec || !rec.mail || !rec.mail.length) return []; const m = rec.mail; rec.mail = []; await dbSet(lid, rec); return m; }
-module.exports = { middleware, handle, GM_IDS, verify, mailAdd, mailTake, guildOf, guildOfSync, setGuildHook: fn => { GD.hook = fn; } };
+// v4.64: เพิ่มเหรียญแฟชั่นจากระบบเซิร์ฟเวอร์ (บอสโลก)
+async function gemAdd(lid, n, why) { try { const rec = await dbGet(String(lid || '').toLowerCase()); if (!rec) return false; n = Math.max(0, Math.min(1000, n | 0)); if (!n) return false; rec.gem = (rec.gem | 0) + n; gemLog(rec, n, why || 'sys'); return dbSet(String(lid).toLowerCase(), rec); } catch (e) { return false; } }
+module.exports = { gemAdd, middleware, handle, GM_IDS, verify, mailAdd, mailTake, guildOf, guildOfSync, setGuildHook: fn => { GD.hook = fn; } };

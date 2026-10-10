@@ -1,7 +1,7 @@
 // ตำนานเอลโดเรีย — ระบบออนไลน์ส่วนกลาง: บอสโลก (12:00 / 20:00 เวลาไทย) · ประมูลของหายาก · แผงร้านผู้เล่นในตลาด
 const fs = require('fs'), path = require('path');
 const DATA = process.env.DATA_DIR || path.join(__dirname, 'data'), FILE = path.join(DATA, 'world.json');
-const WB_HOURS = (process.env.WB_HOURS || '12,20').split(',').map(Number), WB_DUR = 30 * 60e3, WB_HP = +process.env.WB_HP || 2500000;
+const WB_HOURS = (process.env.WB_HOURS || '12,20').split(',').map(Number), WB_DUR = 30 * 60e3, WB_HP = +process.env.WB_HP || 4500000; // v4.64: เลือดสำหรับ ~15 คน (3 ปาร์ตี้)
 const AUC_DUR = 2 * 3600e3;
 let H = null; // { players, send, broadcast, ACC, clean, num }
 const S = { wb: { on: false, hp: 0, max: 0, end: 0, slot: '', dmg: {}, warned: '' }, lots: [], nextLot: 1 };
@@ -29,8 +29,10 @@ function lotsPublic() { return S.lots.map(l => ({ id: l.id, nm: l.nm, cur: l.cur
 function addLots(n) { const pool = LOOT.slice(); for (let i = 0; i < n && pool.length; i++) { const it = pool.splice(Math.floor(Math.random() * pool.length), 1)[0];
     S.lots.push({ id: S.nextLot++, item: it, nm: it.nm, cur: it.min, by: null, acct: null, bids: 0, end: Date.now() + AUC_DUR }); } save(); }
 function wbKill() { S.wb.on = false; S.wb.hp = 0; const list = Object.values(S.wb.dmg).sort((a, b) => b.d - a.d), total = list.reduce((a, b) => a + b.d, 0) || 1;
-  list.forEach((x, i) => { const msg = { t: 'wbwin', rank: i + 1, d: Math.round(x.d), n: list.length, share: x.d / total };
-    const p = x.id && H.players.get(x.id); if (p && p.joined) H.send(p, msg); else if (x.acct) deliver(x.acct, { k: 'wbwin', rank: i + 1, d: Math.round(x.d), n: list.length, share: x.d / total }); });
+  // v4.64: 💠 เหรียญแฟชั่นรวม 100/รอบ แจกตามดาเมจ คนละ 10–30 (ไล่จากดาเมจสูงสุด จนกองหมด · ต้องตีอย่างน้อย 1% · เฉพาะบัญชีออนไลน์)
+  let pool = 100; for (const x of list) { x.gem = 0; const sh = x.d / total; if (!x.acct || sh < 0.01 || pool <= 0) continue; const g = Math.min(pool, Math.max(10, Math.min(30, Math.round(100 * sh)))); x.gem = g; pool -= g; try { if (H.ACC.gemAdd) H.ACC.gemAdd(x.acct, g, 'wboss'); } catch (e) {} }
+  list.forEach((x, i) => { const msg = { t: 'wbwin', rank: i + 1, d: Math.round(x.d), n: list.length, share: x.d / total, gem: x.gem | 0 };
+    const p = x.id && H.players.get(x.id); if (p && p.joined) H.send(p, msg); else if (x.acct) deliver(x.acct, { k: 'wbwin', rank: i + 1, d: Math.round(x.d), n: list.length, share: x.d / total, gem: x.gem | 0 }); });
   addLots(3);
   H.broadcast({ t: 'sys', txt: '🏆 บอสโลกถูกปราบแล้ว! ผู้ร่วมรบ ' + list.length + ' คน · อันดับ 1: ' + (list[0] ? list[0].n : '-') + (list[1] ? ' · 2: ' + list[1].n : '') + (list[2] ? ' · 3: ' + list[2].n : '') + ' — ของหายาก 3 ชิ้นเข้าโรงประมูลแล้ว (2 ชม.)' });
   H.broadcast(wbState()); H.broadcast({ t: 'alots', lots: lotsPublic() }); }
