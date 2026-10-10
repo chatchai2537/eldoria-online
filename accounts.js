@@ -117,6 +117,58 @@ async function guildOp(lid, rec, d) {
     else if (myG.leader === lid) { const nx = rest.sort((p, q) => (GROLE[myG.members[q].role] - GROLE[myG.members[p].role]) || (myG.members[p].j - myG.members[q].j))[0]; myG.members[nx].role = 'leader'; myG.leader = nx; }
     gTouch(); gNotify(lid, null); return { ok: true, g: null }; }
   return { err: 'unknown' }; }
+
+// ---------- v4.61 💠 เหรียญแฟชั่น: ยอดเก็บที่เซิร์ฟเวอร์เท่านั้น (แก้ในเครื่องไม่ได้) · ได้จากเล่นเกม (จำกัด/วัน) หรือเติมเงินพร้อมเพย์ (GM อนุมัติ) ----------
+const GEMP = {"b:night":45,"b:sakura":60,"b:star":80,"b:pirate":70,"b:flame":180,"b:frost":180,"b:th_chakkri":120,"b:th_boromphiman":100,"b:th_chitlada":60,"b:th_nangram":160,"b:th_khon":220,"b:th_nakrop":90,"b:th_khunnang":120,"b:th_chaona":35,"b:th_thep":300,"b:c_sword":140,"b:c_mage":160,"b:c_archer":140,"b:c_ninja":150,"b:c_sniper":140,"b:c_paladin":180,"b:c_cleric":160,"b:c_necro":160,"b:c_monk":140,"b:c_dragoon":180,"b:c_summoner":150,"w:dragon":90,"w:sakura":65,"w:crystal":90,"w:moon":120,"w:holy":200,"w:thunder":150,"w:w_sword":160,"w:w_mage":160,"w:w_archer":160,"w:w_ninja":160,"w:w_sniper":160,"w:w_paladin":180,"w:w_cleric":160,"w:w_necro":180,"w:w_monk":150,"w:w_dragoon":180,"w:w_summoner":160};
+const GEM_CAP = 10; // ได้ฟรีจากการเล่นสูงสุดต่อวัน
+const GEM_EARN = { login: { n: 2, cd: 0 }, lboss: { n: 2, cd: 25 * 60e3 }, wboss: { n: 3, cd: 3 * 3600e3 }, xchg: { n: 1, cd: 0, max: 5 } };
+const GEM_PKG = [{ id: 'p1', baht: 35, gem: 30 }, { id: 'p2', baht: 99, gem: 100 }, { id: 'p3', baht: 299, gem: 330 }, { id: 'p4', baht: 599, gem: 700 }];
+// ข้อมูลรับเงิน: ตั้งใน Render → Environment (ไม่เก็บในโค้ด) TOPUP_PROMPTPAY = เบอร์/เลขบัตรพร้อมเพย์ · TOPUP_NAME = ชื่อบัญชี · TOPUP_CONTACT = ช่องทางส่งสลิป (เช่น LINE: @xxxx)
+const topupInfo = () => ({ pp: String(process.env.TOPUP_PROMPTPAY || '').replace(/[^0-9]/g, '').slice(0, 15), nm: clean(process.env.TOPUP_NAME, 40), ct: clean(process.env.TOPUP_CONTACT, 80) });
+const bkkDay = () => new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10);
+const TQ = { map: {}, dirty: false, loaded: null };
+function tqLoad() { if (TQ.loaded) return TQ.loaded; TQ.loaded = (async () => { try {
+  if (UP_URL) { const r = await fetch(UP_URL + '/get/eld:topq', { headers: { authorization: 'Bearer ' + UP_TOK } }); const j = await r.json(); if (j && j.result) TQ.map = JSON.parse(j.result) || {}; }
+  else { const f = path.join(DATA_DIR, 'topq.json'); if (fs.existsSync(f)) TQ.map = JSON.parse(fs.readFileSync(f, 'utf8')) || {}; }
+} catch (e) { console.log('tqLoad', e.message); } })(); return TQ.loaded; }
+async function tqFlush() { const body = JSON.stringify(TQ.map); try {
+  if (UP_URL) await fetch(UP_URL + '/set/eld:topq', { method: 'POST', headers: { authorization: 'Bearer ' + UP_TOK }, body });
+  else { const f = path.join(DATA_DIR, 'topq.json'), t = f + '.tmp'; fs.writeFileSync(t, body); fs.renameSync(t, f); }
+} catch (e) { console.log('tqFlush', e.message); } }
+function gemLog(rec, n, why) { rec.glog = (rec.glog || []).slice(-49); rec.glog.push({ t: Date.now(), n, w: String(why).slice(0, 40), b: rec.gem | 0 }); }
+function gemDay(rec) { const d = bkkDay(); if (rec.gday !== d) { rec.gday = d; rec.gearn = 0; rec.gx = 0; const a = Math.min(GEM_EARN.login.n, GEM_CAP); rec.gem = (rec.gem | 0) + a; rec.gearn = a; gemLog(rec, a, 'login'); return true; } return false; }
+const gemPub = rec => ({ ok: true, gem: rec.gem | 0, fown: rec.fown || [], earn: rec.gearn | 0, cap: GEM_CAP, xchg: rec.gx | 0, xmax: GEM_EARN.xchg.max, pkg: GEM_PKG, top: topupInfo(), gm: !!rec.gm || GM_IDS.includes(String(rec.id || '').toLowerCase()) });
+async function gemOp(lid, rec, d) {
+  const op = String(d.op || ''); const isGM = !!rec.gm || GM_IDS.includes(lid);
+  if (gemDay(rec)) await dbSet(lid, rec);
+  if (op === 'bal') { await tqLoad(); const r = gemPub(rec); r.pend = Object.entries(TQ.map).filter(([, q]) => q.lid === lid && q.st === 'p').map(([ref, q]) => ({ ref, baht: q.baht, gem: q.gem, t: q.t })); return r; }
+  if (op === 'earn') { const src = String(d.src || ''), E = GEM_EARN[src]; if (!E || src === 'login') return { err: 'src' };
+    rec.gt = rec.gt || {}; const now = Date.now(); if (E.cd && now - (rec.gt[src] || 0) < E.cd) return { err: 'cd' };
+    if ((rec.gearn | 0) >= GEM_CAP) return { err: 'cap' };
+    if (src === 'xchg') { if ((rec.gx | 0) >= E.max) return { err: 'xmax' }; rec.gx = (rec.gx | 0) + 1; }
+    const n = Math.min(E.n, GEM_CAP - (rec.gearn | 0)); rec.gem = (rec.gem | 0) + n; rec.gearn = (rec.gearn | 0) + n; rec.gt[src] = now; gemLog(rec, n, src);
+    if (!await dbSet(lid, rec)) return { err: 'store' }; const r = gemPub(rec); r.got = n; return r; }
+  if (op === 'buy') { const key = String(d.key || ''), pr = GEMP[key]; if (!pr) return { err: 'item' };
+    rec.fown = rec.fown || []; if (rec.fown.includes(key)) return gemPub(rec);
+    if ((rec.gem | 0) < pr) return { err: 'gem', need: pr, gem: rec.gem | 0 };
+    rec.gem = (rec.gem | 0) - pr; rec.fown.push(key); gemLog(rec, -pr, 'buy ' + key); if (!await dbSet(lid, rec)) return { err: 'store' }; return gemPub(rec); }
+  if (op === 'req') { const P = GEM_PKG.find(p => p.id === d.pkg); if (!P) return { err: 'pkg' }; if (!topupInfo().pp) return { err: 'closed' };
+    await tqLoad(); if (Object.values(TQ.map).filter(q => q.lid === lid && q.st === 'p').length >= 3) return { err: 'many' };
+    let ref; do { ref = crypto.randomBytes(3).toString('hex').toUpperCase(); } while (TQ.map[ref]);
+    TQ.map[ref] = { lid, id: rec.id, n: rec.name || rec.id, baht: P.baht, gem: P.gem, t: Date.now(), st: 'p' };
+    const ks = Object.keys(TQ.map); if (ks.length > 2000) for (const k of ks.filter(k => TQ.map[k].st !== 'p').slice(0, ks.length - 2000)) delete TQ.map[k];
+    await tqFlush(); return { ok: true, ref, baht: P.baht, gem: P.gem, top: topupInfo() }; }
+  if (op === 'cancel') { await tqLoad(); const q = TQ.map[clean(d.ref, 8).toUpperCase()]; if (q && q.lid === lid && q.st === 'p') { q.st = 'c'; await tqFlush(); } return { ok: true }; }
+  // ----- GM เท่านั้น -----
+  if (!isGM) return { err: 'perm' };
+  if (op === 'list') { await tqLoad(); return { ok: true, list: Object.entries(TQ.map).filter(([, q]) => d.all ? true : q.st === 'p').sort((a, b) => b[1].t - a[1].t).slice(0, 100).map(([ref, q]) => Object.assign({ ref }, q, { lid: undefined })) }; }
+  if (op === 'ok' || op === 'no') { await tqLoad(); const ref = clean(d.ref, 8).toUpperCase(), q = TQ.map[ref]; if (!q || q.st !== 'p') return { err: 'noreq' };
+    if (op === 'ok') { const tr = await dbGet(q.lid); if (!tr) return { err: 'nouser' }; tr.gem = (tr.gem | 0) + q.gem; gemLog(tr, q.gem, 'topup ' + ref + ' ' + q.baht + 'THB by ' + lid); if (!await dbSet(q.lid, tr)) return { err: 'store' }; }
+    q.st = op === 'ok' ? 'y' : 'n'; q.by = lid; q.at = Date.now(); await tqFlush(); return { ok: true }; }
+  if (op === 'credit') { const tl = clean(d.to, 16).toLowerCase(); if (!ID_RE.test(tl)) return { err: 'badid' }; const n = Math.max(-100000, Math.min(100000, d.n | 0)); if (!n) return { err: 'n' };
+    const tr = await dbGet(tl); if (!tr) return { err: 'nouser' }; tr.gem = Math.max(0, (tr.gem | 0) + n); gemLog(tr, n, 'gm ' + lid + ' ' + clean(d.note, 20)); if (!await dbSet(tl, tr)) return { err: 'store' }; return { ok: true, to: tr.id, gem: tr.gem }; }
+  if (op === 'look') { const tl = clean(d.to, 16).toLowerCase(); const tr = ID_RE.test(tl) && await dbGet(tl); if (!tr) return { err: 'nouser' }; return { ok: true, id: tr.id, n: tr.name, gem: tr.gem | 0, fown: tr.fown || [], log: (tr.glog || []).slice(-20) }; }
+  return { err: 'unknown' }; }
 const lockTbl = new Map();
 async function handle(path_, d, ip) {
   if (path_ === '/api/ping') return { ok: true, t: Date.now(), store: UP_URL ? 'upstash' : 'file' };
@@ -147,7 +199,8 @@ async function handle(path_, d, ip) {
     if (!d.force && (d.base | 0) !== rec.rev) return { err: 'conflict', rev: rec.rev, lv: rec.lv, upd: rec.upd };
     if (rec.save && rec.save !== save) rec.bak = rec.save;
     const lv0 = rec.lv | 0, t0 = rec.upd || 0; rec.save = save; rec.rev++; rec.upd = Date.now(); rec.lv = Math.max(0, Math.min(150, d.lv | 0));
-    if (lv0 >= 5 && rec.lv - lv0 >= 25 && rec.upd - t0 < 30 * 60e3) rec.flag = (rec.flag | 0) + 1; // เลเวลขึ้น 25+ ใน 30 นาที = ผิดปกติ rec.cls = clean(d.cls, 10); rec.name = clean(d.name, 14) || rec.name;
+    if (lv0 >= 5 && rec.lv - lv0 >= 25 && rec.upd - t0 < 30 * 60e3) rec.flag = (rec.flag | 0) + 1; // เลเวลขึ้น 25+ ใน 30 นาที = ผิดปกติ
+    rec.cls = clean(d.cls, 10); rec.name = clean(d.name, 14) || rec.name;
     if (d.stat && typeof d.stat === 'object') rec.stat = { floor: d.stat.floor | 0, mine: d.stat.mine | 0, kills: d.stat.kills | 0 };
     try { await lbLoad(); const S = rec.stat || {}, X = d.stat || {}; LB.map[lid] = { n: rec.name, lv: rec.lv, cls: rec.cls, fl: lbN(S.floor, 999), k: lbN(S.kills, 1e8), b: lbN(X.boss, 1e7), w: lbN(X.w, 1e12), t: clean(X.t, 16), av: lbAv(X.av), flag: (rec.flag | 0) >= 2 ? 1 : 0, u: Date.now() };
       const ks = Object.keys(LB.map); if (ks.length > 5000) { ks.sort((p, q) => LB.map[p].u - LB.map[q].u); for (const k of ks.slice(0, ks.length - 5000)) delete LB.map[k]; } LB.dirty = true; } catch (e) {}
@@ -156,6 +209,7 @@ async function handle(path_, d, ip) {
     return { ok: true, rev: rec.rev, upd: rec.upd };
   }
   if (path_ === '/api/guild') return guildOp(lid, rec, d);
+  if (path_ === '/api/gem') return gemOp(lid, rec, d);
   if (path_ === '/api/friends') {
     if (d.op === 'set') { const arr = Array.isArray(d.friends) ? d.friends : []; rec.friends = [...new Set(arr.map(x => clean(String(x), 14)).filter(Boolean))].slice(0, 200); if (!await dbSet(lid, rec)) return { err: 'store' }; }
     return { ok: true, friends: rec.friends || [] };
