@@ -19,10 +19,18 @@ function tick() { for (const pt of parties.values()) push(pt); }
 // เจ้าของฉาก (โฮสต์มอน) = ผู้เล่นที่อยู่ในฉากนั้นนานสุด
 const FX_K = new Set(['fx', 'pj', 'pe', 'sk']);
 const hostOf = new Map(); // sc -> id
-function hostFor(sc, list) { if (!sc || /^(town|shop|market|wboss|arena|duel|home|tower)/.test(sc)) return 0;
-  let h = hostOf.get(sc); if (h && list.some(p => p.id === h)) return h; h = list.length ? list.reduce((a, b) => (a.scT || 0) <= (b.scT || 0) ? a : b).id : 0; hostOf.set(sc, h); return h; }
-function cleanHosts(byScene) { for (const sc of [...hostOf.keys()]) if (!byScene.has(sc)) hostOf.delete(sc); }
+// v4.72: โฮสต์ค้าง (พับแท็บ/เครื่องหลับ/ไคลเอนต์รุ่นเก่า — ไม่ส่งข้อมูลมอน) ที่คนในฉากแจ้งมา (hstale) → ข้ามไป 60 วิ แล้วเลือกคนถัดไป
+const badHost = new Map(); // sc -> Map(id -> เวลาที่ถูกแจ้ง)
+const isBad = (sc, id, now) => { const m = badHost.get(sc), t = m && m.get(id); return !!t && now - t < 60000; };
+function hostFor(sc, list) { if (!sc || /^(town|shop|market|arena|duel|home|tower)/.test(sc)) return 0; // v4.72: ลานบอสโลก (wboss) มีโฮสต์แล้ว → ทุกคนเห็นบอสตัวเดียวกัน
+  const now = Date.now(); let h = hostOf.get(sc); if (h && !isBad(sc, h, now) && list.some(p => p.id === h)) return h;
+  const good = list.filter(p => !isBad(sc, p.id, now)), c = good.length ? good : list;
+  h = c.length ? c.reduce((a, b) => (a.scT || 0) <= (b.scT || 0) ? a : b).id : 0; hostOf.set(sc, h); return h; }
+function cleanHosts(byScene) { for (const sc of [...hostOf.keys()]) if (!byScene.has(sc)) hostOf.delete(sc); for (const sc of [...badHost.keys()]) if (!byScene.has(sc)) badHost.delete(sc); }
 function onMsg(p, d, now) {
+  if (d.t === 'hstale') { // คนดูแจ้งว่าโฮสต์ของฉากไม่ส่งข้อมูลมอนมาเกิน 3 วิ (แจ้งได้ 1 ครั้ง/5 วิ/คน · ต้องระบุโฮสต์ปัจจุบันให้ตรง)
+    const h = hostOf.get(p.sc); if (p.joined && p.sc && h && h !== p.id && (d.h | 0) === h && now - (p.hsT || 0) > 5000) { p.hsT = now; let m = badHost.get(p.sc); if (!m) badHost.set(p.sc, m = new Map()); m.set(h, now); }
+    return true; }
   if (d.t === 'sx') { // ส่งต่อให้ทุกคนในฉากเดียวกัน (หรือคนเดียวถ้ามี to)
     const k = String(d.k || ''); if (!RELAY_K.has(k) || !p.sc || !p.joined) return true;
     d.from = p.id; d.sc = p.sc; const s = JSON.stringify(d);

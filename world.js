@@ -2,7 +2,7 @@
 const fs = require('fs'), path = require('path');
 const DATA = process.env.DATA_DIR || path.join(__dirname, 'data'), FILE = path.join(DATA, 'world.json');
 const WB_HOURS = (process.env.WB_HOURS || '12,20').split(',').map(Number), WB_DUR = 30 * 60e3, WB_HP = +process.env.WB_HP || 4500000; // v4.64: เลือดสำหรับ ~15 คน (3 ปาร์ตี้)
-const AUC_DUR = 2 * 3600e3;
+const AUC_DUR = (+process.env.AUC_MIN || 10) * 60e3; // v4.72: เจ้าของสั่งให้ประมูลเหลือ 10 นาที (เดิม 2 ชม.) · ตั้ง env AUC_MIN ได้
 let H = null; // { players, send, broadcast, ACC, clean, num }
 const S = { wb: { on: false, hp: 0, max: 0, end: 0, slot: '', dmg: {}, warned: '' }, lots: [], nextLot: 1 };
 try { const j = JSON.parse(fs.readFileSync(FILE, 'utf8')); if (j && Array.isArray(j.lots)) { S.lots = j.lots; S.nextLot = j.nextLot || 1; } if (j && j.slot) S.wb.slot = j.slot; } catch (e) {}
@@ -40,7 +40,7 @@ function wbKill() { S.wb.on = false; S.wb.hp = 0; const list = Object.values(S.w
   list.forEach((x, i) => { const msg = { t: 'wbwin', rank: i + 1, d: Math.round(x.d), n: list.length, share: x.d / total, gem: x.gem | 0 };
     const p = x.id && H.players.get(x.id); if (p && p.joined) H.send(p, msg); else if (x.acct) deliver(x.acct, { k: 'wbwin', rank: i + 1, d: Math.round(x.d), n: list.length, share: x.d / total, gem: x.gem | 0 }); });
   addLots(3);
-  H.broadcast({ t: 'sys', txt: '🏆 บอสโลกถูกปราบแล้ว! ผู้ร่วมรบ ' + list.length + ' คน · อันดับ 1: ' + (list[0] ? list[0].n : '-') + (list[1] ? ' · 2: ' + list[1].n : '') + (list[2] ? ' · 3: ' + list[2].n : '') + ' — ของหายาก 3 ชิ้นเข้าโรงประมูลแล้ว (2 ชม.)' });
+  H.broadcast({ t: 'sys', txt: '🏆 บอสโลกถูกปราบแล้ว! ผู้ร่วมรบ ' + list.length + ' คน · อันดับ 1: ' + (list[0] ? list[0].n : '-') + (list[1] ? ' · 2: ' + list[1].n : '') + (list[2] ? ' · 3: ' + list[2].n : '') + ' — ของหายาก 3 ชิ้นเข้าโรงประมูลแล้ว (' + Math.round(AUC_DUR / 60e3) + ' นาที)' });
   H.broadcast(wbState()); H.broadcast({ t: 'alots', lots: lotsPublic() }); }
 function init(h) { H = h;
   // v4.71: โหลดสถานะโรงประมูลจาก Upstash (รอดการ deploy) — ใช้ชุดที่ใหม่กว่าไฟล์ในเครื่อง
@@ -51,7 +51,8 @@ function init(h) { H = h;
         if (!S.wb.on && t.h === h && t.m < 30 && S.wb.slot !== slot) wbSpawn(slot);
         if (t.h === (h + 23) % 24 && t.m >= 50 && S.wb.warned !== slot) { S.wb.warned = slot; H.broadcast({ t: 'sys', txt: '⏰ อีก ' + (60 - t.m) + ' นาที บอสโลกจะปรากฏ (' + h + ':00 น.) — เตรียมตัวที่ลานบอสโลก!' }); } }
       if (S.wb.on && n > S.wb.end) { S.wb.on = false; H.broadcast({ t: 'sys', txt: '💨 บอสโลกหนีไปแล้ว... ครั้งหน้าต้องช่วยกันให้มากกว่านี้!' }); H.broadcast(wbState()); }
-      let ch = false; for (const l of S.lots.slice()) if (n > l.end) { ch = true; S.lots.splice(S.lots.indexOf(l), 1);
+      let ch = false; for (const l of S.lots) if (l.end - n > AUC_DUR + 60e3) { l.end = n + AUC_DUR; ch = true; } // v4.72: ของที่ค้างจากรอบ 2 ชม. ย่นเหลือ 10 นาที
+      for (const l of S.lots.slice()) if (n > l.end) { ch = true; S.lots.splice(S.lots.indexOf(l), 1);
         if (l.acct) { deliver(l.acct, { k: 'auc', item: l.item, nm: l.nm, paid: l.cur }); H.broadcast({ t: 'sys', txt: '🔨 ' + l.by + ' ชนะการประมูล ' + l.nm + ' ด้วย ' + l.cur.toLocaleString() + ' เหรียญ!' }); } }
       if (ch) { save(); H.broadcast({ t: 'alots', lots: lotsPublic() }); }
     } catch (e) { console.log('world tick', e.message); } }, 5000);
