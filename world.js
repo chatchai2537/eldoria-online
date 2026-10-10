@@ -6,7 +6,10 @@ const AUC_DUR = 2 * 3600e3;
 let H = null; // { players, send, broadcast, ACC, clean, num }
 const S = { wb: { on: false, hp: 0, max: 0, end: 0, slot: '', dmg: {}, warned: '' }, lots: [], nextLot: 1 };
 try { const j = JSON.parse(fs.readFileSync(FILE, 'utf8')); if (j && Array.isArray(j.lots)) { S.lots = j.lots; S.nextLot = j.nextLot || 1; } if (j && j.slot) S.wb.slot = j.slot; } catch (e) {}
-const save = () => { try { fs.mkdirSync(DATA, { recursive: true }); fs.writeFileSync(FILE, JSON.stringify({ lots: S.lots, nextLot: S.nextLot, slot: S.wb.slot })); } catch (e) {} };
+// v4.71: เดิมเก็บแค่ไฟล์ในเครื่อง → Render deploy/รีสตาร์ตแล้วของประมูล (และคนชนะ) หายหมด — ตอนนี้เก็บ Upstash ด้วย (eld:world)
+let kvT = null;
+const save = () => { const st = { lots: S.lots, nextLot: S.nextLot, slot: S.wb.slot, t: Date.now() }; try { fs.mkdirSync(DATA, { recursive: true }); fs.writeFileSync(FILE, JSON.stringify(st)); } catch (e) {}
+  if (H && H.ACC && H.ACC.kvSet && !kvT) kvT = setTimeout(() => { kvT = null; H.ACC.kvSet('eld:world', { lots: S.lots, nextLot: S.nextLot, slot: S.wb.slot, t: Date.now() }); }, 800); };
 const LOOT = [
   { k: 'mount', id: 'drake', nm: '🐉 มังกรเวหาอเวจี (สัตว์ขี่บิน)', min: 60000 },
   { k: 'mount', id: 'pegasus', nm: '🪽 เพกาซัสสายฟ้า (สัตว์ขี่บิน)', min: 35000 },
@@ -20,12 +23,15 @@ const th = (t) => { const d = new Date((t || Date.now()) + 7 * 3600e3); return {
 function nextSlot() { const now = Date.now(), d = new Date(now + 7 * 3600e3); let best = Infinity;
   for (let k = 0; k < 2; k++) for (const h of WB_HOURS) { const t = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + k, h, 0, 0) - 7 * 3600e3; if (t > now && t < best) best = t; } return best; }
 const online = acct => { for (const p of H.players.values()) if (p.acct === acct && p.joined) return p; return null; };
-async function deliver(acct, item) { if (!acct) return; const p = online(acct); if (p) { H.send(p, { t: 'mail', list: [Object.assign({ ts: Date.now() }, item)] }); return; } try { await H.ACC.mailAdd(acct, item); } catch (e) {} }
+// v4.71 📬 ทุกอย่างเข้ากล่องจดหมายถาวรก่อน แล้วค่อยแจ้งคนที่ออนไลน์ (ผู้เล่นกด "รับ" เอง → ของไม่หายระหว่างโหลด/หลุด)
+async function deliver(acct, item) { if (!acct) return; let m = null; try { m = await H.ACC.mailAdd(acct, item); } catch (e) {}
+  const p = online(acct); if (!p) return; if (m) { try { H.send(p, { t: 'mbox', list: await H.ACC.mailList(acct), fresh: m.id }); } catch (e) {} }
+  else H.send(p, { t: 'mail', list: [Object.assign({ ts: Date.now() }, item)] }); }
 function wbState() { const top = Object.values(S.wb.dmg).sort((a, b) => b.d - a.d).slice(0, 5).map(x => [x.n, Math.round(x.d)]);
   return { t: 'wb', on: S.wb.on, hp: Math.max(0, Math.round(S.wb.hp)), max: S.wb.max, end: S.wb.end, top, next: nextSlot(), n: Object.keys(S.wb.dmg).length }; }
 function wbSpawn(slot) { S.wb = { on: true, hp: WB_HP, max: WB_HP, start: Date.now(), end: Date.now() + WB_DUR, slot, dmg: {}, warned: S.wb.warned }; save();
   H.broadcast({ t: 'sys', txt: '🐉 บอสโลก "มหาอสูรอัคคีเอลโดเรีย" ปรากฏแล้วที่ลานบอสโลก! มีเวลา 30 นาที — ทุกคนช่วยกันปราบ! (เมนู 🐉 บอสโลก)' }); H.broadcast(wbState()); }
-function lotsPublic() { return S.lots.map(l => ({ id: l.id, nm: l.nm, cur: l.cur, by: l.by || '', end: l.end, bids: l.bids || 0 })); }
+function lotsPublic() { return S.lots.map(l => ({ id: l.id, nm: l.nm, cur: l.cur, by: l.by || '', end: l.end, bids: l.bids || 0, it: l.item ? { k: l.item.k, id: l.item.id, e: l.item.e | 0, n: l.item.n | 0 } : null })); }
 function addLots(n) { const pool = LOOT.slice(); for (let i = 0; i < n && pool.length; i++) { const it = pool.splice(Math.floor(Math.random() * pool.length), 1)[0];
     S.lots.push({ id: S.nextLot++, item: it, nm: it.nm, cur: it.min, by: null, acct: null, bids: 0, end: Date.now() + AUC_DUR }); } save(); }
 function wbKill() { S.wb.on = false; S.wb.hp = 0; const list = Object.values(S.wb.dmg).sort((a, b) => b.d - a.d), total = list.reduce((a, b) => a + b.d, 0) || 1;
@@ -37,6 +43,9 @@ function wbKill() { S.wb.on = false; S.wb.hp = 0; const list = Object.values(S.w
   H.broadcast({ t: 'sys', txt: '🏆 บอสโลกถูกปราบแล้ว! ผู้ร่วมรบ ' + list.length + ' คน · อันดับ 1: ' + (list[0] ? list[0].n : '-') + (list[1] ? ' · 2: ' + list[1].n : '') + (list[2] ? ' · 3: ' + list[2].n : '') + ' — ของหายาก 3 ชิ้นเข้าโรงประมูลแล้ว (2 ชม.)' });
   H.broadcast(wbState()); H.broadcast({ t: 'alots', lots: lotsPublic() }); }
 function init(h) { H = h;
+  // v4.71: โหลดสถานะโรงประมูลจาก Upstash (รอดการ deploy) — ใช้ชุดที่ใหม่กว่าไฟล์ในเครื่อง
+  try { if (H.ACC && H.ACC.kvGet) H.ACC.kvGet('eld:world').then(j => { if (!j || !Array.isArray(j.lots)) return; let loc = 0; try { loc = JSON.parse(fs.readFileSync(FILE, 'utf8')).t || 0; } catch (e) {}
+    if (S.lots.length && loc >= (j.t || 0)) return; const ids = new Set(S.lots.map(l => l.id)); for (const l of j.lots) if (!ids.has(l.id)) S.lots.push(l); S.nextLot = Math.max(S.nextLot, j.nextLot || 1); if (j.slot && !S.wb.slot) S.wb.slot = j.slot; console.log('world: restored', j.lots.length, 'lots'); }).catch(() => {}); } catch (e) {}
   setInterval(() => { try { const n = Date.now(), t = th(n);
       for (const h of WB_HOURS) { const slot = t.day + '@' + h;
         if (!S.wb.on && t.h === h && t.m < 30 && S.wb.slot !== slot) wbSpawn(slot);
@@ -53,7 +62,12 @@ function onMsg(p, d, now) {
   const { send, clean, num, ACC } = H;
   switch (d.t) {
     case 'auth': ACC.verify(d.id, d.token).then(async v => { if (!v) { send(p, { t: 'auth_no' }); return; } p.acct = v.lid; p.gm = v.gm; try { const g = await ACC.guildOf(v.lid); p.gid = g ? g.id : ''; p.gtag = g ? g.tag : ''; p.gname = g ? g.name : ''; } catch (e) {} send(p, { t: 'auth_ok', gm: v.gm, g: p.gid ? { id: p.gid, tag: p.gtag, name: p.gname } : null });
-        const m = await ACC.mailTake(v.lid); if (m.length) send(p, { t: 'mail', list: m }); }).catch(() => {}); return true;
+        try { const m = await ACC.mailList(v.lid); send(p, { t: 'mbox', list: m }); } catch (e) {}
+        try { if (v.gm && ACC.topPend) { const n = await ACC.topPend(); if (n) send(p, { t: 'gmtop', n }); } } catch (e) {} }).catch(() => {}); return true;
+    case 'mlist': if (!p.acct) return true; ACC.mailList(p.acct).then(m => send(p, { t: 'mbox', list: m })).catch(() => {}); return true;
+    case 'mclaim': { if (!p.acct) return true; const now2 = Date.now(); if (p.mcT && now2 - p.mcT < 700) return true; p.mcT = now2;
+      const ids = d.all ? 'all' : (Array.isArray(d.ids) ? d.ids.slice(0, 100).map(x => clean(String(x), 20)) : []);
+      ACC.mailClaim(p.acct, ids).then(async got => { send(p, { t: 'mgot', list: got }); send(p, { t: 'mbox', list: await ACC.mailList(p.acct) }); }).catch(() => {}); return true; }
     case 'wbq': send(p, wbState()); return true;
     case 'wbhit': { if (!S.wb.on || p.sc !== 'wboss' || !p.st || p.st.dead) return true;
       if (!p.wbw || now - p.wbw > 1000) { p.wbw = now; p.wbu = 0; } const cap = 800 + p.st.lv * 160 - (p.wbu || 0); if (cap <= 0) return true;

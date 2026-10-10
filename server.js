@@ -138,6 +138,7 @@ setInterval(() => { for (const p of players.values()) { if (!p.alive) { p.ws.ter
 WORLD.init({ players, send, broadcast, ACC, clean, num });
 PVP.init({ players, send, broadcast, clean, num });
 PARTY.init({ players, send, clean, num, filt, findByName });
+ACC.setTopHook((n, who, baht) => { for (const p of players.values()) if (p.gm && p.joined) send(p, { t: 'gmtop', n, who, baht }); });
 ACC.setGuildHook((lid, g) => { for (const p of players.values()) if (p.acct === lid) { p.gid = g ? g.id : ''; p.gtag = g ? g.tag : ''; p.gname = g ? g.name : ''; send(p, { t: 'gupd', g }); } });
 // เปิดหน้าเกมที่ Render → ส่งไปเวอร์ชันล่าสุดบน GitHub Pages (ไม่ต้อง Deploy Render ทุกครั้งที่อัปเดตเกม)
 const GAME_URL = process.env.GAME_URL || 'https://chatchai2537.github.io/eldoria-online/';
