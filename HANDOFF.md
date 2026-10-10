@@ -113,7 +113,7 @@ NODE_PATH=$(npm root -g):/opt/npm-tools/node_modules node tools/melee-sync-test.
 
 1. รับงาน → จดลงหัวข้อ 2 ก่อน → ทำใน branch ใหม่ → ทดสอบให้ผ่าน (validator `bugs: []` + เทสที่เกี่ยวกับงานนั้น)
 2. `git fetch origin main` → merge เข้า `main` → push (ลบงานที่เสร็จออกจากหัวข้อ 2 + อัปเดตหัวข้อ 1 + Changelog ใน `AI_GUIDE.md` ไปใน push เดียวกัน)
-3. หน้าเว็บ: GitHub Actions deploy เองใน ~1 นาที · **ต้องเช็ก** `<title>` ที่ https://chatchai2537.github.io/eldoria-online/ ว่าเป็นเลขเวอร์ชันใหม่
+3. หน้าเว็บ: GitHub Actions deploy เองใน ~1 นาที · **ต้องเช็ก** `<title>` ที่ https://chatchai2537.github.io/eldoria-online/ ว่าเป็นเลขเวอร์ชันใหม่ · ⚠️ เครื่องมือดึงหน้าเว็บของ AI (WebFetch) มักได้หน้าเก่าจากแคชนานเกิน 10 นาที (v4.74 เจอมาแล้ว: ของจริงขึ้นแล้วแต่เครื่องมือยังบอกเลขเก่า) → ถ้าเลขยังเก่า ให้ดู `gh run list` ว่า workflow สำเร็จ แล้วเช็กไฟล์ `sw.js` (เลข `eldoria-vNN`) หรือเปิดด้วยเบราว์เซอร์จริง อย่าเพิ่งสรุปว่า deploy ไม่ขึ้น
 4. ถ้าแก้ `server.js/accounts.js/pvp.js/party.js/world.js` → **ต้องสั่ง Deploy Render เอง** (service `srv-db1p2qe0tbcc73bsniog`, workspace `tea-db1otge0tbcc73bs155g`) ผ่าน Render MCP `trigger_deploy` แล้วเช็ก status = `live` และ `/api/ping` ได้ `"store":"upstash"` · ผู้เล่นหลุด ~1 นาที · ถ้าแก้แค่ตัวเกมไม่ต้อง deploy Render
 5. รายงานเจ้าของเป็นภาษาไทย: ขึ้นเวอร์ชันอะไร เช็กอะไรแล้ว มีอะไรที่ยังไม่ได้ทำ
 6. ขึ้นระบบไม่ได้ (เซสชันไม่มีสิทธิ์ push / ระบบความปลอดภัยบล็อก) → push branch ไว้ เปิด Pull Request แล้ว**บอกเจ้าของทันที**ว่าต้องกดอะไร (เคยเกิดกับ v4.71: งานค้างใน branch เจ้าของนึกว่าขึ้นแล้ว)
