@@ -1,4 +1,4 @@
-// ทดสอบเควสทั้งหมดให้ทำจบได้ (ไม่ติด): เควสรอง s1–s10 (กลางวัน+กลางคืน) · เนื้อเรื่องพระราชาบท 0–13 · เควสกิลด์ทุกแบบ · ตำราช่าง 1–10 · เลือกอาชีพ
+// ทดสอบเควสทั้งหมดให้ทำจบได้ (ไม่ติด): เควสรอง s1–s10 (กลางวัน+กลางคืน) · เนื้อเรื่องพระราชาบท 0–26 · เควสกิลด์ทุกแบบ · ตำราช่าง 1–10 · เลือกอาชีพ
 // ใช้: TOUCH=0 node tools/run-game.js game_built.html out 900 500 @tools/scenarios/quests.js  → ต้องได้ fail: []
 const W=ms=>new Promise(r=>setTimeout(r,ms));const fail=[],ok=[];
 const pick=re=>{const i=DLG.ch.findIndex(c=>re.test(c.t));if(i<0)return false;dlgPick(i);return true};
@@ -21,6 +21,7 @@ for(let step=0;step<30&&STORY.ch<STCH.length-1;step++){const ch=STORY.ch;try{
   if(ch===6)QST.done=(STORY.base.q|0)+3;if(ch===13){STORY.f100=1;DG.max=Math.max(DG.max,101)}
   const zb={5:'iron',7:'copper',9:'silver',10:'gold',12:'diamond'}[ch];if(zb)STORY.boss[zb]=1;
   if(STCH[ch].ch11){TW10.data.max=Math.max(TW10.data.max|0,12);STORY.mk11=1;STORY.wb11=1}
+  if(STCH[ch].ch77&&STCH[ch].sat){chNeed();STCH[ch].sat()}
   if(ch===2){const n=chNeed();if(n[0]<n[1]){const sw=Object.keys(ITEMS).find(id=>ITEMS[id].tier>=1&&/sword|staff|bow/.test(ITEMS[id].kind||''));if(sw){GEAR[sw]=(GEAR[sw]|0)+1;try{equipItem(sw)}catch(e){}}}}
   storyTick();if(STORY.st!=='report'){fail.push('บท '+ch+' ทำครบแล้วแต่ไม่ขึ้นรายงาน need='+JSON.stringify(chNeed()));break}}
  dlgClose(true);kingTalk();for(let k=0;k<20&&DLG.open&&STORY.ch===ch;k++){if(!pick(/▶/))break}
