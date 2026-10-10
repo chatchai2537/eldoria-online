@@ -1,5 +1,6 @@
 // วัด DPS 8 วินาทีเทียบกัน (หุ่นเลือดไม่จำกัด): นักดาบตี / นักเวทยิง / เนโคร+โครงกระดูก / กองทัพผู้อัญเชิญ / สู้บอส — ~4 นาที
 // node tools/run-game.js game_built.html dps 1000 600 @tools/scenarios/dps.js
+try{for(const c in CSKILLS)CSK[c]=[1,1,1,1,1,1]}catch(e){} // v4.57 skill buy: สกิล 4–6 ต้องซื้อ — ในเทสให้ถือว่าเรียนแล้ว
 const sl=ms=>new Promise(r=>setTimeout(r,ms));P.lv=80;recalcStats();enterZone(NZI15.grove);await sl(2500);
 for(const row of D.zone.m)row.fill(FL);D.mobs.length=0;D.spT=1e9;D.bossT=1e9;const X0=20*T,Y0=30*T;
 const setCls=k=>{P.cls=k;const wid=NEEDW[k]+4;GEAR[wid]=1;P.armor.sword=wid;try{syncSword()}catch(e){}recalcStats();P.hp=BAL.hp;P.mp=BAL.mp};

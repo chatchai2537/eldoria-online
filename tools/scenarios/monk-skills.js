@@ -1,4 +1,5 @@
 // ทดสอบสกิลใหม่ของมังค์ในเหมือง: ดาเมจ / คูลดาวน์ / กายวัชระลดดาเมจ
+try{for(const c in CSKILLS)CSK[c]=[1,1,1,1,1,1]}catch(e){} // v4.57 skill buy: สกิล 4–6 ต้องซื้อ — ในเทสให้ถือว่าเรียนแล้ว
 P.lv=120;P.cls='monk';recalcStats();P.hp=BAL.hp;P.mp=BAL.mp;
 const sl=ms=>new Promise(r=>setTimeout(r,ms));
 enterZone(0);await sl(2500);

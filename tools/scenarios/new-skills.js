@@ -1,5 +1,6 @@
 // ทดสอบสกิลช่อง 4–6 ของทุกอาชีพ: ร่ายได้ไหม · โดนหุ่นกี่ตัว ไกลแค่ไหน · มีไอคอน · มีพาสซีฟ 3 ขั้น · มีสมุนเกิด
 // node tools/run-game.js game_built.html newsk 1000 600 @tools/scenarios/new-skills.js   (~4 นาที)
+try{for(const c in CSKILLS)CSK[c]=[1,1,1,1,1,1]}catch(e){} // v4.57 skill buy: สกิล 4–6 ต้องซื้อ — ในเทสให้ถือว่าเรียนแล้ว
 const sl=ms=>new Promise(r=>setTimeout(r,ms));P.lv=120;recalcStats();enterZone(NZI15.grove);await sl(2500);
 const Zm=D.zone;for(const row of Zm.m)row.fill(FL);D.mobs.length=0;D.spT=1e9;D.bossT=1e9;const X0=20*T,Y0=30*T;
 const dummies=[];const hits=new Set();

@@ -1,6 +1,7 @@
 // วัดระยะจริงของทุกอาชีพ: ตีธรรมดา / สกิลทุกท่า (สกิล 3 จังหวะแยกจังหวะ) / อัลติ — ใช้หุ่น 27 ตัวเรียงทุก 24px บนแมพที่ลบกำแพงแล้ว
 // ผล reach = ระยะหุ่นไกลสุดที่โดน (พิกเซล) · circle = รัศมี@ระยะจากตัว · shot = กระสุน:ระยะ (p=ทะลุ) · ใช้เวลา ~5 นาที
 // node tools/run-game.js game_built.html ranges 1000 600 @tools/scenarios/ranges.js
+try{for(const c in CSKILLS)CSK[c]=[1,1,1,1,1,1]}catch(e){} // v4.57 skill buy: สกิล 4–6 ต้องซื้อ — ในเทสให้ถือว่าเรียนแล้ว
 const sl=ms=>new Promise(r=>setTimeout(r,ms));
 P.lv=120;recalcStats();enterZone(NZI15.grove);await sl(2500);
 const Zm=D.zone;for(const row of Zm.m)row.fill(FL);D.mobs.length=0;D.spT=1e9;D.bossT=1e9;
